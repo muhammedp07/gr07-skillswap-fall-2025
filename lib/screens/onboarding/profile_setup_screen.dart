@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/user_profile.dart';
+import '../../services/user_service.dart';
+import '../home/home_placeholder.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -191,7 +196,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: _handleProfileSave,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -201,6 +206,52 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         ),
         child: const Text("Continue", style: TextStyle(fontSize: 16)),
       ),
+    );
+  }
+
+  Future<void> _handleProfileSave() async {
+    final name = nameController.text.trim();
+    final major = majorController.text.trim();
+
+    // Validation
+    if (name.isEmpty || major.isEmpty) {
+      _showError("Please fill all fields.");
+      return;
+    }
+    if (skillsTeach.isEmpty || skillsLearn.isEmpty) {
+      _showError("Please select at least one teach and one learn skill.");
+      return;
+    }
+
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final profile = UserProfile(
+      uid: uid,
+      name: name,
+      major: major,
+      skillsTeach: skillsTeach,
+      skillsLearn: skillsLearn,
+    );
+
+    try {
+      await UserService().saveUserProfile(profile);
+    } catch (e) {
+      _showError("Failed to save profile. Try again.");
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Navigate to homepage
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomePlaceholder()),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
 
