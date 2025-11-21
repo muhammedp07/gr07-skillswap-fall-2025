@@ -10,11 +10,10 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-final confirmPasswordController = TextEditingController();
-
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   bool acceptedConduct = false;
   bool loading = false;
@@ -57,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
               label: "MUN Email",
               icon: Icons.email_outlined,
             ),
+
             const SizedBox(height: 16),
 
             _buildTextField(
@@ -145,7 +145,10 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Checkbox(
                 value: acceptedConduct,
-                onChanged: (v) => setState(() => acceptedConduct = v!),
+                onChanged: (v) {
+                  if (!mounted) return;
+                  setState(() => acceptedConduct = v!);
+                },
               ),
               const Text("I agree", style: TextStyle(color: Colors.white)),
             ],
@@ -182,9 +185,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Center(
       child: TextButton(
         onPressed: () {
+          if (!mounted) return;
           setState(() {
             _mode = isSignUp ? AuthMode.signIn : AuthMode.signUp;
-            errorMessage = null; // clear errors
+            errorMessage = null;
           });
         },
         child: Text(
@@ -197,15 +201,18 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // SIGN IN
   Future<void> _handleSignIn() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (!email.endsWith('@mun.ca')) {
+      if (!mounted) return;
       setState(() => errorMessage = "Please use your @mun.ca email.");
       return;
     }
 
+    if (!mounted) return;
     setState(() => loading = true);
 
     try {
@@ -214,32 +221,39 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() => errorMessage = e.message);
     }
 
+    if (!mounted) return;
     setState(() => loading = false);
   }
 
+  // SIGN UP
   Future<void> _handleSignUp() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
 
     if (!email.endsWith('@mun.ca')) {
+      if (!mounted) return;
       setState(() => errorMessage = "Please use your @mun.ca email.");
       return;
     }
 
     if (!acceptedConduct) {
+      if (!mounted) return;
       setState(() => errorMessage = "You must agree to the Code of Conduct.");
       return;
     }
 
-    if (passwordController.text.trim() !=
-        confirmPasswordController.text.trim()) {
+    if (password != confirmPassword) {
+      if (!mounted) return;
       setState(() => errorMessage = "Passwords do not match.");
       return;
     }
 
+    if (!mounted) return;
     setState(() => loading = true);
 
     try {
@@ -248,9 +262,11 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() => errorMessage = e.message);
     }
 
+    if (!mounted) return;
     setState(() => loading = false);
   }
 

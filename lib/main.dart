@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gr07_skillswap/screens/auth/welcome_screen.dart';
+import 'package:gr07_skillswap/screens/home/home_placeholder.dart';
+import 'package:gr07_skillswap/services/user_service.dart';
 import 'firebase_options.dart';
-
 import 'screens/auth/login_screen.dart';
+import 'screens/onboarding/profile_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,50 +36,36 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        final user = snapshot.data;
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        final user = snapshot.data;
-
+        // Not logged in → Welcome Screen
         if (user == null) {
-          return const LoginScreen();
+          return const WelcomeScreen();
         }
 
-        return const ProfileSetupPlaceholder();
+        // User logged in → Check if profile exists
+        return FutureBuilder<bool>(
+          future: UserService().doesProfileExist(),
+          builder: (context, snap) {
+            if (!snap.hasData) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final exists = snap.data!;
+            return exists
+                ? const HomePlaceholder() // User already has profile
+                : const ProfileSetupScreen(); // New user
+          },
+        );
       },
-    );
-  }
-}
-
-class ProfileSetupPlaceholder extends StatelessWidget {
-  const ProfileSetupPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: const Text("Profile Setup Placeholder"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Text(
-          "Profile Setup will be implemented in next branch",
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-      ),
     );
   }
 }
