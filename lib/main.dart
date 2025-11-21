@@ -56,9 +56,21 @@ class ProfileSetupPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0E1126),
-      body: Center(
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E1126),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0E1126),
+        title: const Text("Profile Setup Placeholder"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
+      body: const Center(
         child: Text(
           "Profile Setup will be implemented in next branch",
           style: TextStyle(color: Colors.white70, fontSize: 16),

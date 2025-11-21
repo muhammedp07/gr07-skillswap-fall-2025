@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -134,7 +135,31 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       children: [
         ElevatedButton(
-          onPressed: () {},
+          onPressed: () async {
+            final email = emailController.text.trim();
+            final password = passwordController.text.trim();
+
+            if (!email.endsWith('@mun.ca')) {
+              setState(() => errorMessage = "Please use your @mun.ca email.");
+              return;
+            }
+
+            if (!acceptedConduct) {
+              setState(
+                () => errorMessage = "You must agree to the Code of Conduct.",
+              );
+              return;
+            }
+
+            try {
+              await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                email: email,
+                password: password,
+              );
+            } on FirebaseAuthException catch (e) {
+              setState(() => errorMessage = e.message);
+            }
+          },
           style: ElevatedButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
             backgroundColor: Colors.blue,
@@ -146,7 +171,19 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: () {},
+          onPressed: () async {
+            final email = emailController.text.trim();
+            final password = passwordController.text.trim();
+
+            try {
+              await FirebaseAuth.instance.signInWithEmailAndPassword(
+                email: email,
+                password: password,
+              );
+            } on FirebaseAuthException catch (e) {
+              setState(() => errorMessage = e.message);
+            }
+          },
           child: const Text(
             "Already have an account? Sign in",
             style: TextStyle(color: Colors.white70),
