@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gr07_skillswap/screens/auth/login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -51,9 +52,7 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const _TempAuthPlaceholder(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -83,24 +82,6 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TempAuthPlaceholder extends StatelessWidget {
-  const _TempAuthPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Text(
-          "Auth Screen will be implemented in next branch",
-          style: TextStyle(color: Colors.white),
-          textAlign: TextAlign.center,
         ),
       ),
     );
