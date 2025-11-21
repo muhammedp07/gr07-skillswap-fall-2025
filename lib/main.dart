@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gr07_skillswap/screens/auth/welcome_screen.dart';
 import 'firebase_options.dart';
-
 import 'screens/auth/login_screen.dart';
+import 'screens/onboarding/profile_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,41 +43,13 @@ class AuthGate extends StatelessWidget {
         final user = snapshot.data;
 
         if (user == null) {
-          return const LoginScreen();
+          // When NOT logged in → show WELCOME first
+          return const WelcomeScreen();
         }
 
-        return const ProfileSetupPlaceholder();
+        // User EXISTS → go to REAL Profile Setup
+        return const ProfileSetupScreen();
       },
-    );
-  }
-}
-
-class ProfileSetupPlaceholder extends StatelessWidget {
-  const ProfileSetupPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: const Text("Profile Setup Placeholder"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Text(
-          "Profile Setup will be implemented in next branch",
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-      ),
     );
   }
 }
