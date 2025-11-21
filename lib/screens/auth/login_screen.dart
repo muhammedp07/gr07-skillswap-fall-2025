@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+enum AuthMode { signIn, signUp }
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -11,11 +13,17 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
   bool acceptedConduct = false;
+  bool loading = false;
   String? errorMessage;
+
+  AuthMode _mode = AuthMode.signIn;
 
   @override
   Widget build(BuildContext context) {
+    final isSignUp = _mode == AuthMode.signUp;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1126),
       appBar: AppBar(backgroundColor: const Color(0xFF0E1126), elevation: 0),
@@ -24,18 +32,20 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Create account or sign in",
-              style: TextStyle(
+            Text(
+              isSignUp ? "Create your account" : "Welcome back",
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              "Use your @mun.ca email to join SkillSwap.",
-              style: TextStyle(color: Colors.white70),
+            Text(
+              isSignUp
+                  ? "Use your @mun.ca email to join SkillSwap."
+                  : "Sign in with your MUN email.",
+              style: const TextStyle(color: Colors.white70),
             ),
 
             const SizedBox(height: 24),
@@ -45,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
               label: "MUN Email",
               icon: Icons.email_outlined,
             ),
-
             const SizedBox(height: 16),
 
             _buildTextField(
@@ -55,21 +64,25 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: Icons.lock_outline,
             ),
 
-            const SizedBox(height: 24),
-
-            _buildCodeOfConduct(),
-
             const SizedBox(height: 20),
 
-            if (errorMessage != null)
+            if (isSignUp) _buildCodeOfConduct(),
+
+            if (errorMessage != null) ...[
+              const SizedBox(height: 12),
               Text(
                 errorMessage!,
                 style: const TextStyle(color: Colors.redAccent),
               ),
+            ],
 
             const SizedBox(height: 20),
 
-            _buildButtons(),
+            _buildSubmitButton(isSignUp),
+
+            const SizedBox(height: 12),
+
+            _buildSwitchModeButton(isSignUp),
           ],
         ),
       ),
@@ -89,9 +102,9 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: icon != null ? Icon(icon, color: Colors.white70) : null,
         filled: true,
         fillColor: const Color(0xFF1A1D36),
+        prefixIcon: icon != null ? Icon(icon, color: Colors.white70) : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
@@ -99,7 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildCodeOfConduct() {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.blue.withOpacity(0.08),
@@ -131,65 +143,96 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildButtons() {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: () async {
-            final email = emailController.text.trim();
-            final password = passwordController.text.trim();
-
-            if (!email.endsWith('@mun.ca')) {
-              setState(() => errorMessage = "Please use your @mun.ca email.");
-              return;
-            }
-
-            if (!acceptedConduct) {
-              setState(
-                () => errorMessage = "You must agree to the Code of Conduct.",
-              );
-              return;
-            }
-
-            try {
-              await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                email: email,
-                password: password,
-              );
-            } on FirebaseAuthException catch (e) {
-              setState(() => errorMessage = e.message);
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 52),
-            backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text("Create account"),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () async {
-            final email = emailController.text.trim();
-            final password = passwordController.text.trim();
-
-            try {
-              await FirebaseAuth.instance.signInWithEmailAndPassword(
-                email: email,
-                password: password,
-              );
-            } on FirebaseAuthException catch (e) {
-              setState(() => errorMessage = e.message);
-            }
-          },
-          child: const Text(
-            "Already have an account? Sign in",
-            style: TextStyle(color: Colors.white70),
-          ),
-        ),
-      ],
+  Widget _buildSubmitButton(bool isSignUp) {
+    return ElevatedButton(
+      onPressed: loading
+          ? null
+          : () => isSignUp ? _handleSignUp() : _handleSignIn(),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 52),
+        backgroundColor: Colors.blue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: loading
+          ? const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : Text(isSignUp ? "Create account" : "Sign in"),
     );
+  }
+
+  Widget _buildSwitchModeButton(bool isSignUp) {
+    return Center(
+      child: TextButton(
+        onPressed: () {
+          setState(() {
+            _mode = isSignUp ? AuthMode.signIn : AuthMode.signUp;
+            errorMessage = null; // clear errors
+          });
+        },
+        child: Text(
+          isSignUp
+              ? "Already have an account? Sign in"
+              : "Don't have an account? Create one",
+          style: const TextStyle(color: Colors.white70),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleSignIn() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (!email.endsWith('@mun.ca')) {
+      setState(() => errorMessage = "Please use your @mun.ca email.");
+      return;
+    }
+
+    setState(() => loading = true);
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => errorMessage = e.message);
+    }
+
+    setState(() => loading = false);
+  }
+
+  Future<void> _handleSignUp() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (!email.endsWith('@mun.ca')) {
+      setState(() => errorMessage = "Please use your @mun.ca email.");
+      return;
+    }
+
+    if (!acceptedConduct) {
+      setState(() => errorMessage = "You must agree to the Code of Conduct.");
+      return;
+    }
+
+    setState(() => loading = true);
+
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => errorMessage = e.message);
+    }
+
+    setState(() => loading = false);
   }
 }
