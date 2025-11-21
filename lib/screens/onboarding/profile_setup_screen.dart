@@ -80,6 +80,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   }
                 });
               },
+              isTeachList: true,
             ),
 
             const SizedBox(height: 28),
@@ -99,6 +100,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   }
                 });
               },
+              isTeachList: false,
             ),
 
             const SizedBox(height: 40),
@@ -126,29 +128,57 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget _buildSkillChips({
     required List<String> selectedList,
     required Function(String) onSelect,
+    required bool isTeachList,
   }) {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: allSkills.map((skill) {
-        final bool selected = selectedList.contains(skill);
+        final bool isSelected = selectedList.contains(skill);
+
+        // Disable logic:
+        // If this is Teach list → disable chips already chosen in Learn
+        final bool isDisabled = isTeachList
+            ? skillsLearn.contains(skill)
+            : skillsTeach.contains(skill);
 
         return GestureDetector(
-          onTap: () => onSelect(skill),
-          child: Container(
+          onTap: isDisabled
+              ? null
+              : () => setState(() {
+                  if (isSelected) {
+                    selectedList.remove(skill);
+                  } else {
+                    selectedList.add(skill);
+                  }
+                }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
             decoration: BoxDecoration(
-              color: selected ? Colors.blue : const Color(0xFF1A1D36),
+              color: isDisabled
+                  ? Colors.grey.shade700
+                  : isSelected
+                  ? Colors.blue
+                  : const Color(0xFF1A1D36),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: selected ? Colors.blueAccent : Colors.white24,
+                color: isSelected
+                    ? Colors.blueAccent
+                    : isDisabled
+                    ? Colors.grey.shade600
+                    : Colors.white30,
               ),
             ),
             child: Text(
               skill,
               style: TextStyle(
-                color: selected ? Colors.white : Colors.white70,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: isDisabled
+                    ? Colors.white30
+                    : isSelected
+                    ? Colors.white
+                    : Colors.white70,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),
