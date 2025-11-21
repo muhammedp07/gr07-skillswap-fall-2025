@@ -10,6 +10,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+final confirmPasswordController = TextEditingController();
+
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -63,6 +65,16 @@ class _LoginScreenState extends State<LoginScreen> {
               obscure: true,
               icon: Icons.lock_outline,
             ),
+
+            if (isSignUp) ...[
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: confirmPasswordController,
+                label: "Confirm Password",
+                obscure: true,
+                icon: Icons.lock_outline,
+              ),
+            ],
 
             const SizedBox(height: 20),
 
@@ -222,6 +234,12 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    if (passwordController.text.trim() !=
+        confirmPasswordController.text.trim()) {
+      setState(() => errorMessage = "Passwords do not match.");
+      return;
+    }
+
     setState(() => loading = true);
 
     try {
@@ -234,5 +252,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => loading = false);
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
   }
 }
