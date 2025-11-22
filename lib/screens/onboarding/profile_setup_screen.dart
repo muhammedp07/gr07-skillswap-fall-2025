@@ -15,6 +15,7 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final nameController = TextEditingController();
   final majorController = TextEditingController();
+  final bioController = TextEditingController();
 
   // Predefined skills (to avoid duplicates like python/Python/Python3)
   final List<String> allSkills = [
@@ -67,6 +68,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ),
             const SizedBox(height: 6),
             _buildTextField(majorController, "e.g. Computer Science"),
+
+            const SizedBox(height: 20),
+            const Text(
+              "Bio (Optional)",
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            _buildBioField(),
 
             const SizedBox(height: 24),
             const Text(
@@ -126,6 +135,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white54),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _buildBioField() {
+    return TextField(
+      controller: bioController,
+      maxLength: 150,
+      maxLines: 3,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFF1A1D36),
+        hintText: "Tell us about yourself...",
+        hintStyle: const TextStyle(color: Colors.white54),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        counterStyle: const TextStyle(color: Colors.white54),
       ),
     );
   }
@@ -212,10 +238,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Future<void> _handleProfileSave() async {
     final name = nameController.text.trim();
     final major = majorController.text.trim();
+    final bio = bioController.text.trim();
 
     // Validation
     if (name.isEmpty || major.isEmpty) {
-      _showError("Please fill all fields.");
+      _showError("Please fill all required fields.");
       return;
     }
     if (skillsTeach.isEmpty || skillsLearn.isEmpty) {
@@ -231,6 +258,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       major: major,
       skillsTeach: skillsTeach,
       skillsLearn: skillsLearn,
+      bio: bio.isEmpty ? null : bio,
     );
 
     try {
@@ -259,6 +287,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   void dispose() {
     nameController.dispose();
     majorController.dispose();
+    bioController.dispose();
     super.dispose();
   }
 }

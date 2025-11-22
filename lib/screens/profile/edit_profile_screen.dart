@@ -17,6 +17,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final ProfileController _controller = ProfileController();
   final nameController = TextEditingController();
   final majorController = TextEditingController();
+  final bioController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   File? _selectedImage;
@@ -47,6 +48,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // Pre-fill with current profile data
     nameController.text = widget.currentProfile.name;
     majorController.text = widget.currentProfile.major;
+    bioController.text = widget.currentProfile.bio ?? '';
     skillsTeach = List.from(widget.currentProfile.skillsTeach);
     skillsLearn = List.from(widget.currentProfile.skillsLearn);
   }
@@ -142,6 +144,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 6),
             _buildTextField(majorController, "e.g. Computer Science"),
 
+            const SizedBox(height: 20),
+            const Text(
+              "Bio (Optional)",
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            _buildBioField(),
+
             const SizedBox(height: 24),
             const Text(
               "Skills you can TEACH",
@@ -182,6 +192,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white54),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _buildBioField() {
+    return TextField(
+      controller: bioController,
+      maxLength: 150,
+      maxLines: 3,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFF1A1D36),
+        hintText: "Tell us about yourself...",
+        hintStyle: const TextStyle(color: Colors.white54),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        counterStyle: const TextStyle(color: Colors.white54),
       ),
     );
   }
@@ -276,10 +303,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _handleSave() async {
     final name = nameController.text.trim();
     final major = majorController.text.trim();
+    final bio = bioController.text.trim();
 
     // Validation
     if (name.isEmpty || major.isEmpty) {
-      _showError("Please fill all fields.");
+      _showError("Please fill all required fields.");
       return;
     }
     if (skillsTeach.isEmpty || skillsLearn.isEmpty) {
@@ -307,6 +335,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         skillsTeach: skillsTeach,
         skillsLearn: skillsLearn,
         profileImageUrl: imageUrl,
+        bio: bio.isEmpty ? null : bio,
       );
 
       await _controller.updateUserProfile(updatedProfile);
@@ -343,6 +372,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     nameController.dispose();
     majorController.dispose();
+    bioController.dispose();
     super.dispose();
   }
 }

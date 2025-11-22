@@ -81,6 +81,20 @@ class _ProfileViewState extends State<ProfileView> {
             _profile!.major,
             style: const TextStyle(fontSize: 16, color: Colors.white70),
           ),
+          
+          // Bio
+          if (_profile!.bio != null && _profile!.bio!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                _profile!.bio!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.white60),
+              ),
+            ),
+          ],
+          
           const SizedBox(height: 24),
 
           // Edit Profile Button
