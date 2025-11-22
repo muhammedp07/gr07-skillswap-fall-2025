@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../profile/profile_view.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex;
+
+  const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int currentIndex = 0;
+  late int currentIndex;
 
   final List<String> pageTitles = [
     "Feed",
@@ -17,6 +20,29 @@ class _HomeScreenState extends State<HomeScreen> {
     "Messages",
     "Profile",
   ];
+
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex;
+    pages = [
+      _buildPlaceholderPage("Feed"),
+      _buildPlaceholderPage("Create Post"),
+      _buildPlaceholderPage("Messages"),
+      const ProfileView(),
+    ];
+  }
+
+  Widget _buildPlaceholderPage(String title) {
+    return Center(
+      child: Text(
+        "$title Page",
+        style: const TextStyle(color: Colors.white70, fontSize: 18),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1126),
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: Text(
           pageTitles[currentIndex],
           style: const TextStyle(color: Colors.white),
@@ -41,12 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      body: Center(
-        child: Text(
-          "${pageTitles[currentIndex]} Page",
-          style: const TextStyle(color: Colors.white70, fontSize: 18),
-        ),
-      ),
+      body: pages[currentIndex],
 
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF1A1D36),
