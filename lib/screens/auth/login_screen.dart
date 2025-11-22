@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/user_service.dart';
+import '../home/home_screen.dart';
+import '../onboarding/profile_setup_screen.dart';
 
 enum AuthMode { signIn, signUp }
 
@@ -213,20 +216,41 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!mounted) return;
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      errorMessage = null;
+    });
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      if (!mounted) return;
+
+      // Check if user has completed profile setup
+      final hasProfile = await UserService().doesProfileExist();
+
+      if (!mounted) return;
+
+      // Navigate to appropriate screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => hasProfile 
+            ? const HomeScreen() 
+            : const ProfileSetupScreen(),
+        ),
+        (route) => false,
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      setState(() => errorMessage = e.message);
+      setState(() {
+        errorMessage = e.message;
+        loading = false;
+      });
     }
-
-    if (!mounted) return;
-    setState(() => loading = false);
   }
 
   // SIGN UP
@@ -253,21 +277,41 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    if (password.length < 6) {
+      if (!mounted) return;
+      setState(() => errorMessage = "Password must be at least 6 characters.");
+      return;
+    }
+
     if (!mounted) return;
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      errorMessage = null;
+    });
 
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      if (!mounted) return;
+
+      // After successful sign up, navigate to profile setup
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ProfileSetupScreen(),
+        ),
+        (route) => false,
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      setState(() => errorMessage = e.message);
+      setState(() {
+        errorMessage = e.message;
+        loading = false;
+      });
     }
-
-    if (!mounted) return;
-    setState(() => loading = false);
   }
 
   @override

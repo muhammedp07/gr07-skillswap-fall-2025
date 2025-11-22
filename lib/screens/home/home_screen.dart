@@ -89,7 +89,7 @@ class HomeScreenState extends State<HomeScreen> {
   void _confirmLogout(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1A1D36),
         title: const Text("Log Out", style: TextStyle(color: Colors.white)),
         content: const Text(
@@ -98,13 +98,15 @@ class HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await NavigationUtils.logout(context);
+              Navigator.pop(dialogContext); // Close dialog first
+              if (context.mounted) {
+                await NavigationUtils.logout(context);
+              }
             },
             child: const Text("Log Out", style: TextStyle(color: Colors.red)),
           ),

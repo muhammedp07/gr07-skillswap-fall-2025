@@ -263,18 +263,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     try {
       await UserService().saveUserProfile(profile);
+
+      if (!mounted) return;
+
+      // Navigate to home screen, removing all previous routes
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
     } catch (e) {
+      if (!mounted) return;
       _showError("Failed to save profile. Try again.");
-      return;
     }
-
-    if (!mounted) return;
-
-    // Navigate to homepage
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
   }
 
   void _showError(String message) {
