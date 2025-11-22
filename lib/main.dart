@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/screens/auth/welcome_screen.dart';
-import 'package:gr07_skillswap/screens/home/home_placeholder.dart';
+import 'package:gr07_skillswap/screens/home/home_screen.dart';
 import 'package:gr07_skillswap/services/user_service.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
@@ -61,7 +61,7 @@ class AuthGate extends StatelessWidget {
 
             final exists = snap.data!;
             return exists
-                ? const HomePlaceholder() // User already has profile
+                ? const HomeScreen() // User already has profile
                 : const ProfileSetupScreen(); // New user
           },
         );
