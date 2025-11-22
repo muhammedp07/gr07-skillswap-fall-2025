@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/profile_controller.dart';
 import '../../models/user_profile.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -56,11 +57,16 @@ class _ProfileViewState extends State<ProfileView> {
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          // Profile Icon (Placeholder for now)
-          const CircleAvatar(
+          // Profile Image
+          CircleAvatar(
             radius: 50,
             backgroundColor: Colors.blueAccent,
-            child: Icon(Icons.person, size: 60, color: Colors.white),
+            backgroundImage: _profile!.profileImageUrl != null
+                ? NetworkImage(_profile!.profileImageUrl!)
+                : null,
+            child: _profile!.profileImageUrl == null
+                ? const Icon(Icons.person, size: 60, color: Colors.white)
+                : null,
           ),
           const SizedBox(height: 16),
 
@@ -81,8 +87,17 @@ class _ProfileViewState extends State<ProfileView> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate to edit profile screen
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProfileScreen(currentProfile: _profile!),
+                  ),
+                );
+                // Reload profile if changes were saved
+                if (result == true) {
+                  _loadData();
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
