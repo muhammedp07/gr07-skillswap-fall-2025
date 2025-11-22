@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/utils/navigation_utils.dart';
 import '../profile/profile_view.dart';
 
@@ -65,7 +64,7 @@ class HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          if (_currentIndex == 0) // Only show logout on Feed screen
+          if (_currentIndex == 0 || _currentIndex == 3) // Only show logout on Feed and Profile screens
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               tooltip: "Log out",

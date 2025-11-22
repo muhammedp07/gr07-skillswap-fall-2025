@@ -5,7 +5,6 @@ import 'package:gr07_skillswap/screens/auth/welcome_screen.dart';
 import 'package:gr07_skillswap/screens/home/home_screen.dart';
 import 'package:gr07_skillswap/services/user_service.dart';
 import 'firebase_options.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/onboarding/profile_setup_screen.dart';
 
 void main() async {
