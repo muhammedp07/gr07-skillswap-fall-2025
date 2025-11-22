@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_profile.dart';
 import '../../services/user_service.dart';
-import '../home/home_placeholder.dart';
+import '../home/home_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -245,7 +245,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     // Navigate to homepage
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomePlaceholder()),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
