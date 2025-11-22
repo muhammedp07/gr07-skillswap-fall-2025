@@ -13,7 +13,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   final List<String> _pageTitles = [
     "SkillSwap Feed",
@@ -22,12 +22,33 @@ class HomeScreenState extends State<HomeScreen> {
     "Profile",
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
   // Public method to allow child screens to change tabs
   void setCurrentIndex(int index) {
     if (mounted) {
       setState(() {
         _currentIndex = index;
       });
+    }
+  }
+
+  Widget _getCurrentPage() {
+    switch (_currentIndex) {
+      case 0:
+        return _buildPlaceholderPage(_pageTitles[0], Icons.home);
+      case 1:
+        return _buildPlaceholderPage(_pageTitles[1], Icons.add_circle_outline);
+      case 2:
+        return _buildPlaceholderPage(_pageTitles[2], Icons.chat_bubble_outline);
+      case 3:
+        return const ProfileView();
+      default:
+        return _buildPlaceholderPage(_pageTitles[0], Icons.home);
     }
   }
 
@@ -52,7 +73,7 @@ class HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      body: _buildPlaceholderPage(_pageTitles[_currentIndex], _getPageIcon(_currentIndex)),
+      body: _getCurrentPage(),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF1A1D36),
         selectedItemColor: Colors.blue,
@@ -115,17 +136,7 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  IconData _getPageIcon(int index) {
-    switch (index) {
-      case 0: return Icons.home;
-      case 1: return Icons.add_circle_outline;
-      case 2: return Icons.chat_bubble_outline;
-      case 3: return Icons.person_outline;
-      default: return Icons.home;
-    }
-  }
-
-  static Widget _buildPlaceholderPage(String title, IconData icon) {
+  Widget _buildPlaceholderPage(String title, IconData icon) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
