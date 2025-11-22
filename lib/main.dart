@@ -24,48 +24,142 @@ class SkillSwapApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true),
       home: const AuthGate(),
+      navigatorKey: GlobalKey<NavigatorState>(),
     );
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late Stream<User?> _authStateChanges;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStateChanges = FirebaseAuth.instance.authStateChanges();
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: _authStateChanges,
       builder: (context, snapshot) {
-        final user = snapshot.data;
-
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return _buildLoadingScreen();
         }
 
-        // Not logged in → Welcome Screen
+        final user = snapshot.data;
+
         if (user == null) {
           return const WelcomeScreen();
         }
 
-        // User logged in → Check if profile exists
         return FutureBuilder<bool>(
           future: UserService().doesProfileExist(),
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+          builder: (context, profileSnapshot) {
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoadingScreen();
             }
 
-            final exists = snap.data!;
-            return exists
-                ? const HomeScreen() // User already has profile
-                : const ProfileSetupScreen(); // New user
+            if (profileSnapshot.hasError) {
+              return _buildErrorScreen(profileSnapshot.error.toString());
+            }
+
+            final profileExists = profileSnapshot.data ?? false;
+            
+            return profileExists
+                ? const HomeScreen()
+                : const ProfileSetupScreen();
           },
         );
       },
+    );
+  }
+
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E1126),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Loading SkillSwap...',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen(String error) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E1126),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 64,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Something went wrong',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                error,
+                style: const TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {});
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Try Again'),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                },
+                child: const Text(
+                  'Sign Out',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
