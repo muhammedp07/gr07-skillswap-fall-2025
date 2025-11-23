@@ -40,4 +40,51 @@ class ChatService {
               .toList(),
         );
   }
+
+  /// Send a simple text message (image/file can be added later).
+  Future<void> sendTextMessage({
+    required String chatId,
+    required String senderId,
+    required String text,
+    String? imageUrl,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty && (imageUrl == null || imageUrl.isEmpty)) {
+      return; // nothing to send
+    }
+
+    final chatRef = _db.collection(chatsCollection).doc(chatId);
+    final messagesRef = chatRef.collection(messagesSubcollection).doc();
+    final now = Timestamp.now();
+
+    await _db.runTransaction((txn) async {
+      final chatSnap = await txn.get(chatRef);
+
+      // If the chat doc doesn't exist yet, create a very basic one.
+      if (!chatSnap.exists) {
+        txn.set(chatRef, {
+          'members': [senderId], // we'll add the other user later
+          'lastMessage': trimmed,
+          'lastMessageAt': now,
+          'lastMessageSenderId': senderId,
+          'postId': null,
+        });
+      } else {
+        txn.update(chatRef, {
+          'lastMessage': trimmed,
+          'lastMessageAt': now,
+          'lastMessageSenderId': senderId,
+        });
+      }
+
+      txn.set(messagesRef, {
+        'chatId': chatId,
+        'senderId': senderId,
+        'text': trimmed,
+        'imageUrl': imageUrl,
+        'createdAt': now,
+        'readBy': [senderId],
+      });
+    });
+  }
 }
