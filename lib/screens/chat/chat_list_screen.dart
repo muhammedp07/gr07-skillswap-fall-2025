@@ -1,45 +1,71 @@
-// lib/screens/chat/chat_list_screen.dart
-
 import 'package:flutter/material.dart';
 import '../../models/chat_models.dart';
+import '../../services/chat_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
-  const ChatListScreen({super.key});
+  /// For now we use the dummy current user id.
+  /// Later we'll pass in the real Firebase Auth uid.
+  final String currentUserId;
+
+  const ChatListScreen({super.key, this.currentUserId = dummyCurrentUserId});
 
   @override
   Widget build(BuildContext context) {
-    final chats = dummyChats; // later from Firestore
-
     return Scaffold(
       appBar: AppBar(title: const Text('Messages')),
-      body: ListView.separated(
-        itemCount: chats.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final chat = chats[index];
+      body: StreamBuilder<List<Chat>>(
+        stream: ChatService.instance.watchChatsForUser(currentUserId),
+        builder: (context, snapshot) {
+          // If we have Firestore chats, use them.
+          // Otherwise, fall back to the local dummy list.
+          final chats = (snapshot.hasData && snapshot.data!.isNotEmpty)
+              ? snapshot.data!
+              : dummyChats;
 
-          final otherUserId = chat.memberIds.firstWhere(
-            (id) => id != dummyCurrentUserId,
-          );
+          if (chats.isEmpty) {
+            return const Center(
+              child: Text(
+                'No messages yet.\nStart a chat from a SkillSwap post!',
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
 
-          return ListTile(
-            leading: CircleAvatar(
-              child: Text(otherUserId.substring(0, 1).toUpperCase()),
-            ),
-            title: Text('Chat with $otherUserId'),
-            subtitle: Text(
-              chat.lastMessage,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Text(
-              _formatTime(chat.lastMessageAt),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id)),
+          return ListView.separated(
+            itemCount: chats.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final chat = chats[index];
+
+              final otherUserId = chat.memberIds.isNotEmpty
+                  ? chat.memberIds.firstWhere(
+                      (id) => id != currentUserId,
+                      orElse: () => 'unknown_user',
+                    )
+                  : 'unknown_user';
+
+              return ListTile(
+                leading: CircleAvatar(
+                  child: Text(otherUserId.substring(0, 1).toUpperCase()),
+                ),
+                title: Text('Chat with $otherUserId'),
+                subtitle: Text(
+                  chat.lastMessage,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Text(
+                  _formatTime(chat.lastMessageAt),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(chatId: chat.id),
+                    ),
+                  );
+                },
               );
             },
           );
