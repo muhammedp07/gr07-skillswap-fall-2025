@@ -87,4 +87,45 @@ class ChatService {
       });
     });
   }
+
+  /// Create a chat for a given post (or return the existing one)
+  /// between the current user and the owner of the post.
+  ///
+  /// Returns the chatId to navigate to.
+  Future<String> createOrGetChatForPost({
+    required String currentUserId,
+    required String otherUserId,
+    required String postId,
+  }) async {
+    final chatsRef = _db.collection(chatsCollection);
+
+    // 1) Look for an existing chat with BOTH users and this postId
+    final existing = await chatsRef
+        .where('members', arrayContains: currentUserId)
+        .where('postId', isEqualTo: postId)
+        .get();
+
+    for (final doc in existing.docs) {
+      final data = doc.data();
+      final members = List<String>.from(data['members'] ?? []);
+      if (members.contains(otherUserId)) {
+        // found a matching chat
+        return doc.id;
+      }
+    }
+
+    // 2) If not found, create a new chat doc
+    final now = Timestamp.now();
+    final newChatRef = chatsRef.doc();
+
+    await newChatRef.set({
+      'members': [currentUserId, otherUserId],
+      'lastMessage': '',
+      'lastMessageAt': now,
+      'lastMessageSenderId': currentUserId,
+      'postId': postId,
+    });
+
+    return newChatRef.id;
+  }
 }
