@@ -5,7 +5,6 @@ import 'package:gr07_skillswap/screens/auth/welcome_screen.dart';
 import 'package:gr07_skillswap/screens/home/home_screen.dart';
 import 'package:gr07_skillswap/services/user_service.dart';
 import 'firebase_options.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/onboarding/profile_setup_screen.dart';
 
 void main() async {
@@ -37,29 +36,24 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  late Stream<User?> _authStateChanges;
-
-  @override
-  void initState() {
-    super.initState();
-    _authStateChanges = FirebaseAuth.instance.authStateChanges();
-  }
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: _authStateChanges,
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Show loading while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingScreen();
         }
 
         final user = snapshot.data;
 
+        // User not logged in - show welcome screen
         if (user == null) {
           return const WelcomeScreen();
         }
 
+        // User is logged in - check if profile exists
         return FutureBuilder<bool>(
           future: UserService().doesProfileExist(),
           builder: (context, profileSnapshot) {
@@ -73,6 +67,7 @@ class _AuthGateState extends State<AuthGate> {
 
             final profileExists = profileSnapshot.data ?? false;
             
+            // Navigate based on profile existence
             return profileExists
                 ? const HomeScreen()
                 : const ProfileSetupScreen();

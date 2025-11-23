@@ -1,22 +1,28 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../controllers/profile_controller.dart';
 import '../../models/user_profile.dart';
-import '../../services/user_service.dart';
-import '../home/home_screen.dart';
 
-class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+class EditProfileScreen extends StatefulWidget {
+  final UserProfile currentProfile;
+
+  const EditProfileScreen({super.key, required this.currentProfile});
 
   @override
-  State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  final ProfileController _controller = ProfileController();
   final nameController = TextEditingController();
   final majorController = TextEditingController();
   final bioController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
-  // Predefined skills (to avoid duplicates like python/Python/Python3)
+  File? _selectedImage;
+  bool _isUploading = false;
+
   final List<String> allSkills = [
     "Python",
     "Java",
@@ -37,14 +43,44 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   List<String> skillsLearn = [];
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill with current profile data
+    nameController.text = widget.currentProfile.name;
+    majorController.text = widget.currentProfile.major;
+    bioController.text = widget.currentProfile.bio ?? '';
+    skillsTeach = List.from(widget.currentProfile.skillsTeach);
+    skillsLearn = List.from(widget.currentProfile.skillsLearn);
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0E1126),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1126),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
-          "Set up your profile",
+          "Edit Profile",
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -53,6 +89,46 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Profile Image Picker
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.blueAccent,
+                      backgroundImage: _selectedImage != null
+                          ? FileImage(_selectedImage!)
+                          : (widget.currentProfile.profileImageUrl != null
+                              ? NetworkImage(widget.currentProfile.profileImageUrl!)
+                              : null) as ImageProvider?,
+                      child: (_selectedImage == null && widget.currentProfile.profileImageUrl == null)
+                          ? const Icon(Icons.person, size: 60, color: Colors.white)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
             const Text(
               "Your Name",
               style: TextStyle(color: Colors.white70, fontSize: 16),
@@ -84,15 +160,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             const SizedBox(height: 10),
             _buildSkillChips(
               selectedList: skillsTeach,
-              onSelect: (skill) {
-                setState(() {
-                  if (skillsTeach.contains(skill)) {
-                    skillsTeach.remove(skill);
-                  } else {
-                    skillsTeach.add(skill);
-                  }
-                });
-              },
               isTeachList: true,
             ),
 
@@ -104,20 +171,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             const SizedBox(height: 10),
             _buildSkillChips(
               selectedList: skillsLearn,
-              onSelect: (skill) {
-                setState(() {
-                  if (skillsLearn.contains(skill)) {
-                    skillsLearn.remove(skill);
-                  } else {
-                    skillsLearn.add(skill);
-                  }
-                });
-              },
               isTeachList: false,
             ),
 
             const SizedBox(height: 40),
-            _buildContinueButton(),
+            _buildSaveButton(),
           ],
         ),
       ),
@@ -157,7 +215,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   Widget _buildSkillChips({
     required List<String> selectedList,
-    required Function(String) onSelect,
     required bool isTeachList,
   }) {
     return Wrap(
@@ -165,9 +222,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       runSpacing: 10,
       children: allSkills.map((skill) {
         final bool isSelected = selectedList.contains(skill);
-
-        // Disable logic:
-        // If this is Teach list → disable chips already chosen in Learn
         final bool isDisabled = isTeachList
             ? skillsLearn.contains(skill)
             : skillsTeach.contains(skill);
@@ -176,12 +230,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           onTap: isDisabled
               ? null
               : () => setState(() {
-                  if (isSelected) {
-                    selectedList.remove(skill);
-                  } else {
-                    selectedList.add(skill);
-                  }
-                }),
+                    if (isSelected) {
+                      selectedList.remove(skill);
+                    } else {
+                      selectedList.add(skill);
+                    }
+                  }),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
@@ -189,15 +243,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               color: isDisabled
                   ? Colors.grey.shade700
                   : isSelected
-                  ? Colors.blue
-                  : const Color(0xFF1A1D36),
+                      ? Colors.blue
+                      : const Color(0xFF1A1D36),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected
                     ? Colors.blueAccent
                     : isDisabled
-                    ? Colors.grey.shade600
-                    : Colors.white30,
+                        ? Colors.grey.shade600
+                        : Colors.white30,
               ),
             ),
             child: Text(
@@ -206,8 +260,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 color: isDisabled
                     ? Colors.white30
                     : isSelected
-                    ? Colors.white
-                    : Colors.white70,
+                        ? Colors.white
+                        : Colors.white70,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -217,11 +271,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  Widget _buildContinueButton() {
+  Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _handleProfileSave,
+        onPressed: _isUploading ? null : _handleSave,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -229,12 +283,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: const Text("Continue", style: TextStyle(fontSize: 16)),
+        child: _isUploading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                "Save Changes",
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
       ),
     );
   }
 
-  Future<void> _handleProfileSave() async {
+  Future<void> _handleSave() async {
     final name = nameController.text.trim();
     final major = majorController.text.trim();
     final bio = bioController.text.trim();
@@ -249,31 +315,50 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       return;
     }
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
-    final profile = UserProfile(
-      uid: uid,
-      name: name,
-      major: major,
-      skillsTeach: skillsTeach,
-      skillsLearn: skillsLearn,
-      bio: bio.isEmpty ? null : bio,
-    );
+    setState(() {
+      _isUploading = true;
+    });
 
     try {
-      await UserService().saveUserProfile(profile);
+      String? imageUrl = widget.currentProfile.profileImageUrl;
 
-      if (!mounted) return;
+      // Upload new image if selected
+      if (_selectedImage != null) {
+        imageUrl = await _controller.uploadProfileImage(_selectedImage!);
+      }
 
-      // Navigate to home screen, removing all previous routes
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
+      // Create updated profile
+      final updatedProfile = UserProfile(
+        uid: widget.currentProfile.uid,
+        name: name,
+        major: major,
+        skillsTeach: skillsTeach,
+        skillsLearn: skillsLearn,
+        profileImageUrl: imageUrl,
+        bio: bio.isEmpty ? null : bio,
       );
-    } catch (e) {
+
+      await _controller.updateUserProfile(updatedProfile);
+
       if (!mounted) return;
-      _showError("Failed to save profile. Try again.");
+
+      // Show success and return
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile updated successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pop(context, true); // Return true to indicate success
+    } catch (e) {
+      _showError("Failed to update profile. Try again.");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 

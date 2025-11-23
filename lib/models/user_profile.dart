@@ -4,6 +4,8 @@ class UserProfile {
   final String major;
   final List<String> skillsTeach;
   final List<String> skillsLearn;
+  final String? profileImageUrl;
+  final String? bio;
 
   UserProfile({
     required this.uid,
@@ -11,6 +13,8 @@ class UserProfile {
     required this.major,
     required this.skillsTeach,
     required this.skillsLearn,
+    this.profileImageUrl,
+    this.bio,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +24,8 @@ class UserProfile {
       'major': major,
       'skillsTeach': skillsTeach,
       'skillsLearn': skillsLearn,
+      'profileImageUrl': profileImageUrl,
+      'bio': bio,
     };
   }
 
@@ -30,6 +36,8 @@ class UserProfile {
       major: map['major'],
       skillsTeach: List<String>.from(map['skillsTeach']),
       skillsLearn: List<String>.from(map['skillsLearn']),
+      profileImageUrl: map['profileImageUrl'],
+      bio: map['bio'],
     );
   }
 }
