@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '../../models/chat_models.dart';
+import '../../services/chat_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -13,16 +15,13 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late List<ChatMessage> _messages;
   final TextEditingController _controller = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _messages = List<ChatMessage>.from(
-      dummyMessagesByChatId[widget.chatId] ?? [],
-    );
-  }
+  String get _currentUserId {
+    final user = FirebaseAuth.instance.currentUser;
+    // Fallback to dummy id if somehow not logged in
+    return user?.uid ?? dummyCurrentUserId;
+  } // later from Firebase Auth
 
   @override
   void dispose() {
@@ -30,24 +29,17 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _handleSend() {
+  Future<void> _handleSend() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final newMessage = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    _controller.clear();
+
+    await ChatService.instance.sendTextMessage(
       chatId: widget.chatId,
-      senderId: dummyCurrentUserId,
+      senderId: _currentUserId,
       text: text,
-      createdAt: DateTime.now(),
     );
-
-    setState(() {
-      _messages.add(newMessage);
-      _controller.clear();
-    });
-
-    // Later: also write to Firestore here.
   }
 
   @override
@@ -57,34 +49,60 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isMe = message.senderId == dummyCurrentUserId;
+            child: StreamBuilder<List<ChatMessage>>(
+              stream: ChatService.instance.watchMessages(widget.chatId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                return Align(
-                  alignment: isMe
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isMe
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey.shade800,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                final messages = (snapshot.data?.isNotEmpty ?? false)
+                    ? snapshot.data!
+                    : (dummyMessagesByChatId[widget.chatId] ?? []);
+
+                if (messages.isEmpty) {
+                  return const Center(
                     child: Text(
-                      message.text,
-                      style: const TextStyle(color: Colors.white),
+                      'No messages yet.\nSay hi and start the swap! 👋',
+                      textAlign: TextAlign.center,
                     ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isMe = message.senderId == _currentUserId;
+
+                    return Align(
+                      alignment: isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isMe
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.grey.shade800,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          message.text,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

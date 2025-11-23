@@ -1,24 +1,27 @@
+// lib/screens/chat/chat_list_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/chat_models.dart';
 import '../../services/chat_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
-  /// For now we use the dummy current user id.
-  /// Later we'll pass in the real Firebase Auth uid.
-  final String currentUserId;
-
-  const ChatListScreen({super.key, this.currentUserId = dummyCurrentUserId});
+  const ChatListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Real Firebase user if available, otherwise fallback.
+    final user = FirebaseAuth.instance.currentUser;
+    final currentUserId = user?.uid ?? dummyCurrentUserId;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Messages')),
       body: StreamBuilder<List<Chat>>(
         stream: ChatService.instance.watchChatsForUser(currentUserId),
         builder: (context, snapshot) {
-          // If we have Firestore chats, use them.
-          // Otherwise, fall back to the local dummy list.
+          // If Firestore has chats, use them. Otherwise keep dummy ones.
           final chats = (snapshot.hasData && snapshot.data!.isNotEmpty)
               ? snapshot.data!
               : dummyChats;
@@ -70,6 +73,28 @@ class ChatListScreen extends StatelessWidget {
             },
           );
         },
+      ),
+
+      // TEMP BUTTON: create a test chat in Firestore so we can see real data
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Hard-coded test data for now.
+          const testOtherUserId = 'test_user_2';
+          const testPostId = 'test_post_1';
+
+          final chatId = await ChatService.instance.createOrGetChatForPost(
+            currentUserId: currentUserId,
+            otherUserId: testOtherUserId,
+            postId: testPostId,
+          );
+
+          if (!context.mounted) return;
+
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId)));
+        },
+        child: const Icon(Icons.add_comment),
       ),
     );
   }
