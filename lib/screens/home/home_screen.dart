@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gr07_skillswap/utils/navigation_utils.dart';
 import '../profile/profile_view.dart';
+import 'package:gr07_skillswap/screens/chat/chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
@@ -43,7 +44,7 @@ class HomeScreenState extends State<HomeScreen> {
       case 1:
         return _buildPlaceholderPage(_pageTitles[1], Icons.add_circle_outline);
       case 2:
-        return _buildPlaceholderPage(_pageTitles[2], Icons.chat_bubble_outline);
+        return const ChatListScreen();
       case 3:
         return const ProfileView();
       default:
@@ -64,7 +65,9 @@ class HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          if (_currentIndex == 0 || _currentIndex == 3) // Only show logout on Feed and Profile screens
+          if (_currentIndex == 0 ||
+              _currentIndex ==
+                  3) // Only show logout on Feed and Profile screens
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               tooltip: "Log out",
@@ -85,10 +88,7 @@ class HomeScreenState extends State<HomeScreen> {
         },
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Feed",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Feed"),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             label: "Create",
@@ -119,7 +119,10 @@ class HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.white70),
+            ),
           ),
           TextButton(
             onPressed: () async {
