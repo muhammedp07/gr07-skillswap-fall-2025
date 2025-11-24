@@ -1,8 +1,12 @@
+// lib/screens/chat/chat_list_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/chat_models.dart';
+import '../../models/user_profile.dart';
 import '../../services/chat_service.dart';
+import '../../services/user_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
@@ -21,22 +25,8 @@ class ChatListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-
-    // 🔒 If somehow not logged in, show a clear message instead of dummy data
-    if (user == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF0E1126),
-        body: const Center(
-          child: Text(
-            'You need to be signed in to see your messages.',
-            style: TextStyle(color: Colors.white70),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    final currentUserId = user.uid;
+    final currentUserId = user?.uid ?? dummyCurrentUserId;
+    final userService = UserService();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1126),
@@ -66,46 +56,41 @@ class ChatListScreen extends StatelessWidget {
             child: StreamBuilder<List<Chat>>(
               stream: ChatService.instance.watchChatsForUser(currentUserId),
               builder: (context, snapshot) {
-                // ❌ Explicit error handling
+                // ERROR HANDLING
                 if (snapshot.hasError) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(16),
                       child: Text(
                         'Error loading messages:\n${snapshot.error}',
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(color: Colors.redAccent),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   );
                 }
 
-                // ⏳ Loading
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final chats = snapshot.data ?? [];
+                // Use Firestore chats if they exist, otherwise fall back to dummy data
+                final firestoreChats = snapshot.data ?? [];
+                final chats = firestoreChats.isNotEmpty
+                    ? firestoreChats
+                    : dummyChats;
 
-                // No Firestore chats yet
                 if (chats.isEmpty) {
                   return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: Text(
-                        "No conversations yet.\nTap Message on a SkillSwap post to start one!",
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                        textAlign: TextAlign.center,
-                      ),
+                    child: Text(
+                      "No conversations yet.\nTap Message on a SkillSwap post to start one!",
+                      style: TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
                     ),
                   );
                 }
 
-                // ✅ We have real chats from Firestore
                 return ListView.separated(
                   itemCount: chats.length,
                   separatorBuilder: (_, __) =>
@@ -113,52 +98,56 @@ class ChatListScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final chat = chats[index];
 
-                    // Find the "other" user in this chat
-                    String otherUserId = 'unknown_user';
-                    if (chat.members.length >= 2) {
-                      otherUserId = chat.members.firstWhere(
-                        (m) => m != currentUserId,
-                        orElse: () => 'unknown_user',
+                    // ---------- Find OTHER user id safely ----------
+                    String? otherUserId;
+
+                    if (chat.members.isNotEmpty) {
+                      // Try to pick member that is NOT the current user
+                      try {
+                        otherUserId = chat.members.firstWhere(
+                          (m) => m != currentUserId,
+                          orElse: () => '',
+                        );
+                        if (otherUserId.isEmpty) {
+                          // if all members equal current user (weird older chat),
+                          // fall back to the first member
+                          otherUserId = chat.members.first;
+                        }
+                      } catch (_) {
+                        // If something goes wrong, just fall back to first member
+                        otherUserId = chat.members.first;
+                      }
+                    }
+
+                    // If we STILL don't have an id, show an "unknown" tile
+                    if (otherUserId == null || otherUserId.isEmpty) {
+                      return _buildChatTile(
+                        context: context,
+                        chat: chat,
+                        displayName: 'Unknown user',
+                        avatarLetter: 'U',
                       );
                     }
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.deepPurple,
-                        child: Text(
-                          otherUserId.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      title: Text(
-                        'Chat with $otherUserId',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        chat.lastMessage.isEmpty
-                            ? 'No messages yet'
-                            : chat.lastMessage,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
-                      ),
-                      trailing: Text(
-                        _formatTime(chat.lastMessageAt),
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.white60),
-                      ),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ChatScreen(chatId: chat.id),
-                          ),
+                    // ---------- Look up that user in Firestore ----------
+                    return FutureBuilder<UserProfile?>(
+                      future: userService.getUserProfile(otherUserId),
+                      builder: (context, userSnap) {
+                        String displayName = 'Unknown user';
+
+                        if (userSnap.hasData && userSnap.data != null) {
+                          displayName = userSnap.data!.name;
+                        }
+
+                        final avatarLetter = displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : 'U';
+
+                        return _buildChatTile(
+                          context: context,
+                          chat: chat,
+                          displayName: displayName,
+                          avatarLetter: avatarLetter,
                         );
                       },
                     );
@@ -182,6 +171,45 @@ class ChatListScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  // Reusable tile builder
+  Widget _buildChatTile({
+    required BuildContext context,
+    required Chat chat,
+    required String displayName,
+    required String avatarLetter,
+  }) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Colors.deepPurple,
+        child: Text(avatarLetter, style: const TextStyle(color: Colors.white)),
+      ),
+      title: Text(
+        'Chat with $displayName',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        chat.lastMessage.isEmpty ? 'No messages yet' : chat.lastMessage,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: Colors.white70, fontSize: 13),
+      ),
+      trailing: Text(
+        _formatTime(chat.lastMessageAt),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: Colors.white60),
+      ),
+      onTap: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id)));
+      },
     );
   }
 }
