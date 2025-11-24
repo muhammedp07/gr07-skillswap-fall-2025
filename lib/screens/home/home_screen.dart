@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   late int _currentIndex;
   final GlobalKey<CreatePostScreenState> _createPostKey = GlobalKey();
+  final NotificationController _notificationController = NotificationController();
 
   @override
   void initState() {
