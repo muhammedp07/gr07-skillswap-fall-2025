@@ -3,6 +3,8 @@ import 'package:gr07_skillswap/utils/navigation_utils.dart';
 import '../feed/feed_screen.dart';
 import '../feed/create_post_screen.dart';
 import '../profile/profile_view.dart';
+import '../notifications/notification_screen.dart';
+import '../../controllers/notification_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
@@ -16,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   late int _currentIndex;
   final GlobalKey<CreatePostScreenState> _createPostKey = GlobalKey();
+  final NotificationController _notificationController = NotificationController();
 
   @override
   void initState() {
@@ -61,6 +64,52 @@ class HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
+          // Notification bell with badge
+          StreamBuilder<int>(
+            stream: _notificationController.unreadCount,
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    tooltip: "Notifications",
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => NotificationScreen()),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           if (_currentIndex == 0 || _currentIndex == 3)
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
