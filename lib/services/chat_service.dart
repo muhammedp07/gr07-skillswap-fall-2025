@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_models.dart';
 
+import '../models/notification_model.dart';
+import 'notification_service.dart';
+
 class ChatService {
   ChatService._();
 
@@ -11,6 +14,7 @@ class ChatService {
 
   static const String chatsCollection = 'chats';
   static const String messagesSubcollection = 'messages';
+  final NotificationService _notificationService = NotificationService();
 
   /// Watch all chats where the given user is a member.
   /// We only filter by `members` in Firestore (no orderBy) so we don't need a
@@ -92,6 +96,51 @@ class ChatService {
         'readBy': [senderId],
       });
     });
+  }
+
+  /// Send a text message AND create a notification for the other user.
+  Future<void> sendTextMessageAndNotify({
+    required String chatId,
+    required String senderId,
+    required String recipientId,
+    required String text,
+    String? imageUrl,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty && (imageUrl == null || imageUrl.isEmpty)) {
+      return;
+    }
+
+    // 1) send the message (re-use the existing logic)
+    await sendTextMessage(
+      chatId: chatId,
+      senderId: senderId,
+      text: trimmed,
+      imageUrl: imageUrl,
+    );
+
+    // 2) fire an in-app notification for the recipient
+    if (senderId == recipientId) return; // just in case
+
+    final preview = trimmed.isEmpty ? 'You received a new message.' : trimmed;
+
+    final notification = NotificationModel(
+      id: '', // Firestore will generate it
+      fromUserId: senderId,
+      title: 'New message in SkillSwap',
+      body: preview.length > 80 ? '${preview.substring(0, 80)}…' : preview,
+      type: NotificationType.message,
+      timestamp: DateTime.now(),
+      relatedId: chatId, // so you can navigate to this chat later
+    );
+
+    try {
+      await _notificationService.sendNotification(recipientId, notification);
+    } catch (e) {
+      // We don't want the whole send to fail just because notification failed.
+      // In a real app you'd log this somewhere.
+      // debugPrint('Failed to send notification: $e');
+    }
   }
 
   /// Create a chat for a given post (or return the existing one)

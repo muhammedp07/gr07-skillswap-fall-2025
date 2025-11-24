@@ -216,9 +216,18 @@ class _FeedScreenState extends State<FeedScreen> {
                       : _selectedTeachFilterSkill == skill;
 
                   // Check if this skill is from user's profile or discovered
-                  final bool isFromProfile = _selectedFilter == 'learn'
-                      ? _currentUserProfile!.skillsLearn.contains(skill)
-                      : _currentUserProfile!.skillsTeach.contains(skill);
+                  final bool isFromProfile;
+                  if (_currentUserProfile == null) {
+                    isFromProfile = false;
+                  } else if (_selectedFilter == 'learn') {
+                    isFromProfile = _currentUserProfile!.skillsLearn.contains(
+                      skill,
+                    );
+                  } else {
+                    isFromProfile = _currentUserProfile!.skillsTeach.contains(
+                      skill,
+                    );
+                  }
 
                   return Tooltip(
                     message: isFromProfile
@@ -424,7 +433,7 @@ class _FeedScreenState extends State<FeedScreen> {
   List<Post> _applyAdvancedFilter(List<Post> posts) {
     if (_currentUserProfile == null) return posts;
 
-    final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     List<Post> filteredPosts = posts;
 
     // Apply main filter
@@ -475,7 +484,8 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Widget _buildPostCard(Post post) {
-    final isOwnPost = post.userId == FirebaseAuth.instance.currentUser!.uid;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isOwnPost = currentUserId != null && post.userId == currentUserId;
     final matchScore = _calculateMatchScore(post);
 
     return Card(
@@ -706,9 +716,14 @@ class _FeedScreenState extends State<FeedScreen> {
       if (!mounted) return;
 
       // Navigate to your existing ChatScreen
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatId: chatId,
+            otherUserId: post.userId, // owner of the post
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

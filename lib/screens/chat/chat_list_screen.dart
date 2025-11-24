@@ -126,6 +126,7 @@ class ChatListScreen extends StatelessWidget {
                         chat: chat,
                         displayName: 'Unknown user',
                         avatarLetter: 'U',
+                        otherUserId: '', // nothing to navigate with
                       );
                     }
 
@@ -148,6 +149,7 @@ class ChatListScreen extends StatelessWidget {
                           chat: chat,
                           displayName: displayName,
                           avatarLetter: avatarLetter,
+                          otherUserId: otherUserId!,
                         );
                       },
                     );
@@ -180,6 +182,7 @@ class ChatListScreen extends StatelessWidget {
     required Chat chat,
     required String displayName,
     required String avatarLetter,
+    required String otherUserId,
   }) {
     return ListTile(
       leading: CircleAvatar(
@@ -206,9 +209,16 @@ class ChatListScreen extends StatelessWidget {
         ).textTheme.bodySmall?.copyWith(color: Colors.white60),
       ),
       onTap: () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id)));
+        if (otherUserId.isEmpty) return; // nothing sensible to open
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              chatId: chat.id,
+              otherUserId: otherUserId, // 👈 the one we calculated above
+            ),
+          ),
+        );
       },
     );
   }

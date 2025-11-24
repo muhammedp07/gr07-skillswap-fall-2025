@@ -7,8 +7,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
-
-  const ChatScreen({super.key, required this.chatId});
+  final String otherUserId;
+  const ChatScreen({
+    super.key,
+    required this.chatId,
+    required this.otherUserId,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -35,9 +39,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
 
-    await ChatService.instance.sendTextMessage(
+    await ChatService.instance.sendTextMessageAndNotify(
       chatId: widget.chatId,
       senderId: _currentUserId,
+      recipientId: widget.otherUserId, // ⬅️ who should get the notification
       text: text,
     );
   }
