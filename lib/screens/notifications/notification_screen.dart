@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
-// Note: Add 'intl' to pubspec.yaml for date formatting, or use basic string
-import 'package:intl/intl.dart'; 
+import '../chat/chat_screen.dart';
 
 class NotificationScreen extends StatelessWidget {
   NotificationScreen({super.key});
@@ -49,7 +50,9 @@ class NotificationScreen extends StatelessWidget {
         ),
         title: Text(
           notif.title,
-          style: TextStyle(fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold),
+          style: TextStyle(
+            fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,10 +65,27 @@ class NotificationScreen extends StatelessWidget {
             ),
           ],
         ),
+
+        /// ✅ When you tap a notification:
         onTap: () {
           _controller.markAsRead(notif.id);
-          // TODO: Add navigation logic here based on notif.type
-          // E.g., if (type == swapRequest) Navigator.pushNamed(...)
+
+          // If it's a message notification and we have a chatId stored,
+          // open that chat.
+          if (notif.type == NotificationType.message &&
+              notif.relatedId != null &&
+              notif.relatedId!.isNotEmpty) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ChatScreen(
+                  chatId: notif.relatedId!, // we stored chatId here
+                  otherUserId: notif.fromUserId, // the person who messaged you
+                ),
+              ),
+            );
+          }
+
+          // For other notification types, you can add navigation later.
         },
       ),
     );
@@ -73,19 +93,27 @@ class NotificationScreen extends StatelessWidget {
 
   Color _getTypeColor(NotificationType type) {
     switch (type) {
-      case NotificationType.message: return Colors.blue;
-      case NotificationType.swapRequest: return Colors.orange;
-      case NotificationType.swapAccepted: return Colors.green;
-      case NotificationType.reviewReminder: return Colors.purple;
+      case NotificationType.message:
+        return Colors.blue;
+      case NotificationType.swapRequest:
+        return Colors.orange;
+      case NotificationType.swapAccepted:
+        return Colors.green;
+      case NotificationType.reviewReminder:
+        return Colors.purple;
     }
   }
 
   IconData _getTypeIcon(NotificationType type) {
     switch (type) {
-      case NotificationType.message: return Icons.chat;
-      case NotificationType.swapRequest: return Icons.swap_horiz;
-      case NotificationType.swapAccepted: return Icons.check_circle;
-      case NotificationType.reviewReminder: return Icons.star;
+      case NotificationType.message:
+        return Icons.chat;
+      case NotificationType.swapRequest:
+        return Icons.swap_horiz;
+      case NotificationType.swapAccepted:
+        return Icons.check_circle;
+      case NotificationType.reviewReminder:
+        return Icons.star;
     }
   }
 }
