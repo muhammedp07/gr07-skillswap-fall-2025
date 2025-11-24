@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gr07_skillswap/utils/navigation_utils.dart';
+import '../feed/feed_screen.dart';
+import '../feed/create_post_screen.dart';
 import '../profile/profile_view.dart';
 import '../notifications/notification_screen.dart';
 import '../../controllers/notification_controller.dart';
@@ -15,7 +17,23 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   late int _currentIndex;
-  final NotificationController _notificationController = NotificationController();
+  final GlobalKey<CreatePostScreenState> _createPostKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
+  List<Widget> get _pages => [
+    FeedScreen(onTabChange: (index) {}),
+    CreatePostScreen(
+      key: _createPostKey,
+      onTabChange: (index) => setCurrentIndex(index),
+    ),
+    _buildPlaceholderPage("Messages", Icons.chat_bubble_outline),
+    const ProfileView(),
+  ];
 
   final List<String> _pageTitles = [
     "SkillSwap Feed",
@@ -23,12 +41,6 @@ class HomeScreenState extends State<HomeScreen> {
     "Messages",
     "Profile",
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-  }
 
   // Public method to allow child screens to change tabs
   void setCurrentIndex(int index) {
@@ -39,21 +51,6 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _getCurrentPage() {
-    switch (_currentIndex) {
-      case 0:
-        return _buildPlaceholderPage(_pageTitles[0], Icons.home);
-      case 1:
-        return _buildPlaceholderPage(_pageTitles[1], Icons.add_circle_outline);
-      case 2:
-        return _buildPlaceholderPage(_pageTitles[2], Icons.chat_bubble_outline);
-      case 3:
-        return const ProfileView();
-      default:
-        return _buildPlaceholderPage(_pageTitles[0], Icons.home);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +58,6 @@ class HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1126),
         elevation: 0,
-        automaticallyImplyLeading: false,
         title: Text(
           _pageTitles[_currentIndex],
           style: const TextStyle(color: Colors.white),
@@ -113,15 +109,21 @@ class HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          if (_currentIndex == 0 || _currentIndex == 3) // Only show logout on Feed and Profile screens
+          if (_currentIndex == 0 || _currentIndex == 3)
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.redAccent),
               tooltip: "Log out",
               onPressed: () => _confirmLogout(context),
             ),
+          if (_currentIndex == 1)
+            IconButton(
+              icon: const Icon(Icons.check, color: Colors.green),
+              tooltip: "Submit Post",
+              onPressed: _submitPostFromAppBar,
+            ),
         ],
       ),
-      body: _getCurrentPage(),
+      body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF1A1D36),
         selectedItemColor: Colors.blue,
@@ -155,10 +157,16 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _submitPostFromAppBar() {
+    if (_createPostKey.currentState != null) {
+      _createPostKey.currentState!.submitPost();
+    }
+  }
+
   void _confirmLogout(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1D36),
         title: const Text("Log Out", style: TextStyle(color: Colors.white)),
         content: const Text(
@@ -167,15 +175,13 @@ class HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () => Navigator.pop(context),
             child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(dialogContext); // Close dialog first
-              if (context.mounted) {
-                await NavigationUtils.logout(context);
-              }
+              Navigator.pop(context);
+              await NavigationUtils.logout(context);
             },
             child: const Text("Log Out", style: TextStyle(color: Colors.red)),
           ),
@@ -184,7 +190,7 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPlaceholderPage(String title, IconData icon) {
+  static Widget _buildPlaceholderPage(String title, IconData icon) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
