@@ -2,45 +2,58 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Simple model for a chat conversation.
 class Chat {
   final String id;
-  final List<String> memberIds; // uids of users in the chat (usually 2)
+  final List<String> members; // userIds in this chat
   final String lastMessage;
   final DateTime lastMessageAt;
   final String lastMessageSenderId;
-  final String? postId; // optional: skill swap post that started this chat
+  final String? postId; // optional: SkillSwap post this chat is about
 
   Chat({
     required this.id,
-    required this.memberIds,
+    required this.members,
     required this.lastMessage,
     required this.lastMessageAt,
     required this.lastMessageSenderId,
     this.postId,
   });
 
+  factory Chat.fromMap(String id, Map<String, dynamic> map) {
+    final rawLastAt = map['lastMessageAt'];
+
+    DateTime lastAt;
+    if (rawLastAt is Timestamp) {
+      lastAt = rawLastAt.toDate();
+    } else if (rawLastAt is int) {
+      lastAt = DateTime.fromMillisecondsSinceEpoch(rawLastAt);
+    } else {
+      lastAt = DateTime.now();
+    }
+
+    return Chat(
+      id: id,
+      members: List<String>.from(map['members'] ?? const []),
+      lastMessage: map['lastMessage'] ?? '',
+      lastMessageAt: lastAt,
+      lastMessageSenderId: map['lastMessageSenderId'] ?? '',
+      postId: map['postId'],
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
-      'members': memberIds,
+      'members': members,
       'lastMessage': lastMessage,
       'lastMessageAt': Timestamp.fromDate(lastMessageAt),
       'lastMessageSenderId': lastMessageSenderId,
       'postId': postId,
     };
   }
-
-  factory Chat.fromMap(String id, Map<String, dynamic> map) {
-    return Chat(
-      id: id,
-      memberIds: List<String>.from(map['members'] ?? []),
-      lastMessage: map['lastMessage'] ?? '',
-      lastMessageAt: (map['lastMessageAt'] as Timestamp).toDate(),
-      lastMessageSenderId: map['lastMessageSenderId'] ?? '',
-      postId: map['postId'],
-    );
-  }
 }
 
+/// Model for a single chat message.
 class ChatMessage {
   final String id;
   final String chatId;
@@ -57,8 +70,31 @@ class ChatMessage {
     required this.text,
     this.imageUrl,
     required this.createdAt,
-    this.readBy = const [],
+    required this.readBy,
   });
+
+  factory ChatMessage.fromMap(String id, Map<String, dynamic> map) {
+    final rawCreated = map['createdAt'];
+
+    DateTime createdAt;
+    if (rawCreated is Timestamp) {
+      createdAt = rawCreated.toDate();
+    } else if (rawCreated is int) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreated);
+    } else {
+      createdAt = DateTime.now();
+    }
+
+    return ChatMessage(
+      id: id,
+      chatId: map['chatId'] ?? '',
+      senderId: map['senderId'] ?? '',
+      text: map['text'] ?? '',
+      imageUrl: map['imageUrl'],
+      createdAt: createdAt,
+      readBy: List<String>.from(map['readBy'] ?? const []),
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -70,91 +106,91 @@ class ChatMessage {
       'readBy': readBy,
     };
   }
-
-  factory ChatMessage.fromMap(String id, Map<String, dynamic> map) {
-    return ChatMessage(
-      id: id,
-      chatId: map['chatId'] ?? '',
-      senderId: map['senderId'] ?? '',
-      text: map['text'] ?? '',
-      imageUrl: map['imageUrl'],
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      readBy: List<String>.from(map['readBy'] ?? []),
-    );
-  }
 }
 
-/// Pretend current user has this uid (we'll replace with real auth later).
+/// Dummy current user id used for local data / preview.
 const String dummyCurrentUserId = 'user_me';
 
+/// Dummy chats for UI when Firestore is empty.
 final List<Chat> dummyChats = [
   Chat(
-    id: 'chat1',
-    memberIds: ['user_me', 'user_jane'],
+    id: 'chat_jane',
+    members: ['user_me', 'user_jane'],
     lastMessage: 'Sounds great! See you then.',
     lastMessageAt: DateTime.now().subtract(const Duration(minutes: 2)),
     lastMessageSenderId: 'user_jane',
-    postId: 'post_flutter_help',
+    postId: 'post_jane_flutter',
   ),
   Chat(
-    id: 'chat2',
-    memberIds: ['user_me', 'user_john'],
+    id: 'chat_john',
+    members: ['user_me', 'user_john'],
     lastMessage: 'Hey, I am interested in the guitar lesson.',
     lastMessageAt: DateTime.now().subtract(const Duration(hours: 1)),
     lastMessageSenderId: 'user_me',
-    postId: 'post_guitar_lesson',
+    postId: 'post_john_guitar',
   ),
   Chat(
-    id: 'chat3',
-    memberIds: ['user_me', 'user_emily'],
+    id: 'chat_emily',
+    members: ['user_me', 'user_emily'],
     lastMessage: 'Perfect, see you then!',
     lastMessageAt: DateTime.now().subtract(const Duration(days: 1)),
     lastMessageSenderId: 'user_emily',
-    postId: 'post_spanish_help',
+    postId: 'post_emily_spanish',
   ),
 ];
 
+/// Dummy messages grouped by chat id.
 final Map<String, List<ChatMessage>> dummyMessagesByChatId = {
-  'chat1': [
+  'chat_jane': [
     ChatMessage(
       id: 'm1',
-      chatId: 'chat1',
+      chatId: 'chat_jane',
       senderId: 'user_jane',
       text:
           'Hey! Are you free to meet tomorrow to discuss the Flutter project?',
-      createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
+      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+      imageUrl: null,
+      readBy: const ['user_me', 'user_jane'],
     ),
     ChatMessage(
       id: 'm2',
-      chatId: 'chat1',
-      senderId: dummyCurrentUserId,
+      chatId: 'chat_jane',
+      senderId: 'user_me',
       text: 'Hi Jane! Yes, I am. How about 2 PM at the library?',
-      createdAt: DateTime.now().subtract(const Duration(minutes: 10)),
+      createdAt: DateTime.now().subtract(const Duration(minutes: 4)),
+      imageUrl: null,
+      readBy: const ['user_me', 'user_jane'],
     ),
     ChatMessage(
       id: 'm3',
-      chatId: 'chat1',
+      chatId: 'chat_jane',
       senderId: 'user_jane',
       text: 'Sounds perfect! See you then.',
-      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+      createdAt: DateTime.now().subtract(const Duration(minutes: 2)),
+      imageUrl: null,
+      readBy: const ['user_me', 'user_jane'],
     ),
   ],
-  'chat2': [
+  'chat_john': [
     ChatMessage(
       id: 'm4',
-      chatId: 'chat2',
-      senderId: dummyCurrentUserId,
+      chatId: 'chat_john',
+      senderId: 'user_me',
       text: 'Hey, I am interested in the guitar lesson.',
-      createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      imageUrl: null,
+      readBy: const ['user_me', 'user_john'],
     ),
   ],
-  'chat3': [
+  'chat_emily': [
     ChatMessage(
       id: 'm5',
-      chatId: 'chat3',
+      chatId: 'chat_emily',
       senderId: 'user_emily',
       text: 'Perfect, see you then!',
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      imageUrl: null,
+      readBy: const ['user_me', 'user_emily'],
     ),
   ],
 };

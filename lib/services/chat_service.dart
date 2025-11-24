@@ -13,17 +13,23 @@ class ChatService {
   static const String messagesSubcollection = 'messages';
 
   /// Watch all chats where the given user is a member.
+  /// We only filter by `members` in Firestore (no orderBy) so we don't need a
+  /// composite index. Then we sort by `lastMessageAt` on the client.
   Stream<List<Chat>> watchChatsForUser(String userId) {
     return _db
         .collection(chatsCollection)
         .where('members', arrayContains: userId)
-        .orderBy('lastMessageAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final chats = snapshot.docs
               .map((doc) => Chat.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+              .toList();
+
+          // Sort newest first on the client
+          chats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+
+          return chats;
+        });
   }
 
   /// Watch all messages for a chat (we'll use this later).
