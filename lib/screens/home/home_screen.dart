@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gr07_skillswap/utils/navigation_utils.dart';
+
 import '../feed/feed_screen.dart';
 import '../feed/create_post_screen.dart';
 import '../profile/profile_view.dart';
 import '../notifications/notification_screen.dart';
 import '../../controllers/notification_controller.dart';
+import '../chat/chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
@@ -18,7 +20,8 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   late int _currentIndex;
   final GlobalKey<CreatePostScreenState> _createPostKey = GlobalKey();
-  final NotificationController _notificationController = NotificationController();
+  final NotificationController _notificationController =
+      NotificationController();
 
   @override
   void initState() {
@@ -26,13 +29,14 @@ class HomeScreenState extends State<HomeScreen> {
     _currentIndex = widget.initialIndex;
   }
 
+  // Tabs for bottom navigation
   List<Widget> get _pages => [
     FeedScreen(onTabChange: (index) {}),
     CreatePostScreen(
       key: _createPostKey,
       onTabChange: (index) => setCurrentIndex(index),
     ),
-    _buildPlaceholderPage("Messages", Icons.chat_bubble_outline),
+    const ChatListScreen(),
     const ProfileView(),
   ];
 
@@ -64,7 +68,7 @@ class HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          // Notification bell with badge
+          // Notification bell with badge (from main)
           StreamBuilder<int>(
             stream: _notificationController.unreadCount,
             builder: (context, snapshot) {
@@ -72,12 +76,17 @@ class HomeScreenState extends State<HomeScreen> {
               return Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white,
+                    ),
                     tooltip: "Notifications",
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => NotificationScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => NotificationScreen(),
+                        ),
                       );
                     },
                   ),
@@ -137,10 +146,7 @@ class HomeScreenState extends State<HomeScreen> {
         },
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Feed",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Feed"),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             label: "Create",
@@ -177,7 +183,10 @@ class HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.white70),
+            ),
           ),
           TextButton(
             onPressed: () async {
