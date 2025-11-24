@@ -102,19 +102,17 @@ class ChatListScreen extends StatelessWidget {
                     String? otherUserId;
 
                     if (chat.members.isNotEmpty) {
-                      // Try to pick member that is NOT the current user
                       try {
+                        // try member that is NOT the current user
                         otherUserId = chat.members.firstWhere(
                           (m) => m != currentUserId,
                           orElse: () => '',
                         );
                         if (otherUserId.isEmpty) {
-                          // if all members equal current user (weird older chat),
-                          // fall back to the first member
+                          // weird case: only current user in members
                           otherUserId = chat.members.first;
                         }
                       } catch (_) {
-                        // If something goes wrong, just fall back to first member
                         otherUserId = chat.members.first;
                       }
                     }
@@ -124,9 +122,10 @@ class ChatListScreen extends StatelessWidget {
                       return _buildChatTile(
                         context: context,
                         chat: chat,
+                        otherUserId: 'unknown',
                         displayName: 'Unknown user',
                         avatarLetter: 'U',
-                        otherUserId: '', // nothing to navigate with
+                        avatarUrl: null,
                       );
                     }
 
@@ -135,21 +134,25 @@ class ChatListScreen extends StatelessWidget {
                       future: userService.getUserProfile(otherUserId),
                       builder: (context, userSnap) {
                         String displayName = 'Unknown user';
+                        String avatarLetter = 'U';
+                        String? avatarUrl;
 
-                        if (userSnap.hasData && userSnap.data != null) {
-                          displayName = userSnap.data!.name;
+                        final profile = userSnap.data;
+                        if (profile != null) {
+                          displayName = profile.name;
+                          avatarUrl = profile.profileImageUrl;
+                          if (displayName.isNotEmpty) {
+                            avatarLetter = displayName[0].toUpperCase();
+                          }
                         }
-
-                        final avatarLetter = displayName.isNotEmpty
-                            ? displayName[0].toUpperCase()
-                            : 'U';
 
                         return _buildChatTile(
                           context: context,
                           chat: chat,
+                          otherUserId: otherUserId!,
                           displayName: displayName,
                           avatarLetter: avatarLetter,
-                          otherUserId: otherUserId!,
+                          avatarUrl: avatarUrl,
                         );
                       },
                     );
@@ -176,18 +179,24 @@ class ChatListScreen extends StatelessWidget {
     );
   }
 
-  // Reusable tile builder
+  // Reusable tile builder with avatar image support
   Widget _buildChatTile({
     required BuildContext context,
     required Chat chat,
+    required String otherUserId,
     required String displayName,
     required String avatarLetter,
-    required String otherUserId,
+    String? avatarUrl,
   }) {
+    final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.deepPurple,
-        child: Text(avatarLetter, style: const TextStyle(color: Colors.white)),
+        backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
+        child: hasAvatar
+            ? null
+            : Text(avatarLetter, style: const TextStyle(color: Colors.white)),
       ),
       title: Text(
         'Chat with $displayName',
@@ -209,14 +218,10 @@ class ChatListScreen extends StatelessWidget {
         ).textTheme.bodySmall?.copyWith(color: Colors.white60),
       ),
       onTap: () {
-        if (otherUserId.isEmpty) return; // nothing sensible to open
-
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ChatScreen(
-              chatId: chat.id,
-              otherUserId: otherUserId, // 👈 the one we calculated above
-            ),
+            builder: (_) =>
+                ChatScreen(chatId: chat.id, otherUserId: otherUserId),
           ),
         );
       },
