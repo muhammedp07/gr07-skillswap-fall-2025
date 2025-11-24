@@ -5,6 +5,9 @@ import '../../models/user_profile.dart';
 import '../../services/post_service.dart';
 import '../../services/user_service.dart';
 
+import '../../services/chat_service.dart';
+import '../chat/chat_screen.dart';
+
 class FeedScreen extends StatefulWidget {
   final Function(int)? onTabChange;
 
@@ -18,6 +21,7 @@ class _FeedScreenState extends State<FeedScreen> {
   final TextEditingController _searchController = TextEditingController();
   final PostService _postService = PostService();
   final UserService _userService = UserService();
+  final ChatService _chatService = ChatService.instance;
 
   String _searchQuery = '';
   String _selectedFilter = 'all';
@@ -639,7 +643,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      _showMessageDialog(post);
+                      _startChatForPost(post);
                     },
                     icon: const Icon(Icons.message, size: 18),
                     label: const Text("Message"),
@@ -679,27 +683,38 @@ class _FeedScreenState extends State<FeedScreen> {
     return score;
   }
 
-  void _showMessageDialog(Post post) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1D36),
-        title: Text(
-          "Message ${post.userName}",
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          "Messaging feature will be implemented in the next phase.\n\nFor now, you can discuss meeting in public spaces on campus like the Library, UC, or Science Building.",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK", style: TextStyle(color: Colors.blue)),
-          ),
-        ],
-      ),
-    );
+  Future<void> _startChatForPost(Post post) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    // Optional: stop user messaging their own post
+    if (post.userId == currentUser.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can't message your own post.")),
+      );
+      return;
+    }
+
+    try {
+      // This returns the chatId (String)
+      final chatId = await _chatService.createOrGetChatForPost(
+        postId: post.id,
+        currentUserId: currentUser.uid,
+        otherUserId: post.userId,
+      );
+
+      if (!mounted) return;
+
+      // Navigate to your existing ChatScreen
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to open chat: $e')));
+    }
   }
 
   void _deletePost(String postId) {
