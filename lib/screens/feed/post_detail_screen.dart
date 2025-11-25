@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/post.dart';
 import '../../services/chat_service.dart';
 import '../chat/chat_screen.dart';
+import '../../models/user_profile.dart';
+import '../../services/user_service.dart';
 
 class PostDetailScreen extends StatelessWidget {
   final Post post;
@@ -60,12 +62,6 @@ class PostDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mainSkill = _buildMainSkill();
-    final offersLabel = post.skillsTeach.isNotEmpty
-        ? post.skillsTeach.join(', ')
-        : 'No skills listed';
-    final wantsLabel = post.skillsLearn.isNotEmpty
-        ? post.skillsLearn.join(', ')
-        : 'No skills listed';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1126),
@@ -86,58 +82,16 @@ class PostDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: avatar + name + major
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.blue,
-                        child: Text(
-                          post.userName.isNotEmpty
-                              ? post.userName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              post.userName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              post.userMajor,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'SkillSwap member',
-                              style: TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  /// ✅ Load full profile for header (photo + name + major)
+                  FutureBuilder<UserProfile?>(
+                    future: UserService().getUserProfile(post.userId),
+                    builder: (context, snap) {
+                      if (!snap.hasData || snap.data == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return _buildUserHeader(post, snap.data!);
+                    },
                   ),
-
                   const SizedBox(height: 24),
 
                   // Big “main skill” card
@@ -160,19 +114,28 @@ class PostDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // Chips row: Offers / Wants
+                  // Chips row: Offers / Wants / Availability
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _buildPillChip(
-                        label: 'Offers: $offersLabel',
-                        background: const Color(0xFF1F2A5A),
+                      // Offers (Can Teach)
+                      ...post.skillsTeach.map(
+                        (skill) => _buildPillChip(
+                          label: 'Offers: $skill',
+                          background: const Color(0xFF1F2A5A),
+                        ),
                       ),
-                      _buildPillChip(
-                        label: 'Wants: $wantsLabel',
-                        background: const Color(0xFF1F2A5A),
+
+                      // Wants (Wants to Learn)
+                      ...post.skillsLearn.map(
+                        (skill) => _buildPillChip(
+                          label: 'Wants: $skill',
+                          background: const Color(0xFF264C5E),
+                        ),
                       ),
+
+                      // Availability, if present
                       if (post.availability != null &&
                           post.availability!.isNotEmpty)
                         _buildPillChip(
@@ -258,6 +221,51 @@ class PostDetailScreen extends StatelessWidget {
         label,
         style: const TextStyle(color: Colors.white, fontSize: 13),
       ),
+    );
+  }
+
+  Widget _buildUserHeader(Post post, UserProfile profile) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 32,
+          backgroundImage:
+              (profile.profileImageUrl != null &&
+                  profile.profileImageUrl!.isNotEmpty)
+              ? NetworkImage(profile.profileImageUrl!)
+              : null,
+          child:
+              (profile.profileImageUrl == null ||
+                  profile.profileImageUrl!.isEmpty)
+              ? Text(
+                  profile.name[0].toUpperCase(),
+                  style: const TextStyle(fontSize: 28, color: Colors.white),
+                )
+              : null,
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              profile.name,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              profile.major,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const Text(
+              "Member since 2023",
+              style: TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
