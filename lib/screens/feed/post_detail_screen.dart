@@ -1,13 +1,72 @@
+// lib/screens/feed/post_detail_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/post.dart';
+import '../../services/chat_service.dart';
+import '../chat/chat_screen.dart';
 
 class PostDetailScreen extends StatelessWidget {
   final Post post;
 
   const PostDetailScreen({super.key, required this.post});
 
+  String _buildMainSkill() {
+    // Use first teach skill as the “title”, or fall back to a generic label
+    if (post.skillsTeach.isNotEmpty) {
+      return post.skillsTeach.first;
+    }
+    if (post.skillsLearn.isNotEmpty) {
+      return post.skillsLearn.first;
+    }
+    return 'Skill Swap';
+  }
+
+  Future<void> _startChatFromDetail(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    // Prevent messaging your own post
+    if (post.userId == currentUser.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can't message your own post.")),
+      );
+      return;
+    }
+
+    try {
+      final chatId = await ChatService.instance.createOrGetChatForPost(
+        currentUserId: currentUser.uid,
+        otherUserId: post.userId,
+        postId: post.id,
+      );
+
+      if (!context.mounted) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(chatId: chatId, otherUserId: post.userId),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to open chat: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final mainSkill = _buildMainSkill();
+    final offersLabel = post.skillsTeach.isNotEmpty
+        ? post.skillsTeach.join(', ')
+        : 'No skills listed';
+    final wantsLabel = post.skillsLearn.isNotEmpty
+        ? post.skillsLearn.join(', ')
+        : 'No skills listed';
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1126),
       appBar: AppBar(
@@ -19,114 +78,185 @@ class PostDetailScreen extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // top user row
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.blue,
-                  child: Text(
-                    post.userName.isNotEmpty
-                        ? post.userName[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(color: Colors.white, fontSize: 22),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header: avatar + name + major
+                  Row(
                     children: [
-                      Text(
-                        post.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.blue,
+                        child: Text(
+                          post.userName.isNotEmpty
+                              ? post.userName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      Text(
-                        post.userMajor,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post.userName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              post.userMajor,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'SkillSwap member',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-            // Title (we'll just build it from skills for now)
-            Text(
-              'Skill Swap',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
+                  // Big “main skill” card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF151936),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      mainSkill,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Chips row: Offers / Wants
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      _buildPillChip(
+                        label: 'Offers: $offersLabel',
+                        background: const Color(0xFF1F2A5A),
+                      ),
+                      _buildPillChip(
+                        label: 'Wants: $wantsLabel',
+                        background: const Color(0xFF1F2A5A),
+                      ),
+                      if (post.availability != null &&
+                          post.availability!.isNotEmpty)
+                        _buildPillChip(
+                          label: 'Availability: ${post.availability!}',
+                          background: const Color(0xFF2F2345),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Description
+                  const Text(
+                    'Description',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    (post.description != null &&
+                            post.description!.trim().isNotEmpty)
+                        ? post.description!
+                        : 'No description added yet.',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Wants to learn: ${post.skillsLearn.join(', ')}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            Text(
-              'Can teach: ${post.skillsTeach.join(', ')}',
-              style: const TextStyle(color: Colors.white70),
-            ),
+          ),
 
-            const SizedBox(height: 24),
-
-            const Text(
-              'Description',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+          // Bottom “Message” button
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              (post.description ?? '').isEmpty
-                  ? 'No description provided.'
-                  : post.description!,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-
-            const Spacer(),
-
-            // Message button (we'll wire up later)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // TODO: open chat from detail screen (later step)
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF0E1126),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _startChatFromDetail(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  child: Text(
+                    'Message ${post.userName.split(' ').first}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Message',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillChip({required String label, required Color background}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
       ),
     );
   }
