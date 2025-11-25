@@ -5,6 +5,8 @@ import '../../models/user_profile.dart';
 import '../../services/post_service.dart';
 import '../../services/user_service.dart';
 
+import 'post_detail_screen.dart';
+
 import '../../services/chat_service.dart';
 import '../chat/chat_screen.dart';
 
@@ -488,191 +490,207 @@ class _FeedScreenState extends State<FeedScreen> {
     final isOwnPost = currentUserId != null && post.userId == currentUserId;
     final matchScore = _calculateMatchScore(post);
 
-    return Card(
-      color: const Color(0xFF1A1D36),
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // User Info
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Text(
-                    post.userName[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        post.userMajor,
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
-                if (matchScore > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$matchScore match${matchScore > 1 ? 'es' : ''}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Skills Section
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Skills to Learn
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Wants to Learn:",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: post.skillsLearn
-                            .map(
-                              (skill) => Chip(
-                                label: Text(
-                                  skill,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                backgroundColor: Colors.red.withOpacity(0.3),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                // Skills to Teach
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Can Teach:",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: post.skillsTeach
-                            .map(
-                              (skill) => Chip(
-                                label: Text(
-                                  skill,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                backgroundColor: Colors.green.withOpacity(0.3),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // Description
-            if (post.description != null && post.description!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                post.description!,
-                style: const TextStyle(color: Colors.white70),
-              ),
-            ],
-
-            // Availability
-            if (post.availability != null && post.availability!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+    return InkWell(
+      onTap: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
+      },
+      child: Card(
+        color: const Color(0xFF1A1D36),
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // User Info
               Row(
                 children: [
-                  const Icon(Icons.schedule, size: 16, color: Colors.white70),
-                  const SizedBox(width: 4),
-                  Text(
-                    post.availability!,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Text(
+                      post.userName[0].toUpperCase(),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.userName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          post.userMajor,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (matchScore > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$matchScore match${matchScore > 1 ? 'es' : ''}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Skills Section
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Skills to Learn
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Wants to Learn:",
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: post.skillsLearn
+                              .map(
+                                (skill) => Chip(
+                                  label: Text(
+                                    skill,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.red.withOpacity(0.3),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Skills to Teach
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Can Teach:",
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: post.skillsTeach
+                              .map(
+                                (skill) => Chip(
+                                  label: Text(
+                                    skill,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.green.withOpacity(
+                                    0.3,
+                                  ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ],
 
-            const SizedBox(height: 16),
+              // Description
+              if (post.description != null && post.description!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  post.description!,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ],
 
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      _startChatForPost(post);
-                    },
-                    icon: const Icon(Icons.message, size: 18),
-                    label: const Text("Message"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
+              // Availability
+              if (post.availability != null &&
+                  post.availability!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, size: 16, color: Colors.white70),
+                    const SizedBox(width: 4),
+                    Text(
+                      post.availability!,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _startChatForPost(post);
+                      },
+                      icon: const Icon(Icons.message, size: 18),
+                      label: const Text("Message"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                if (isOwnPost) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deletePost(post.id),
-                  ),
+                  if (isOwnPost) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deletePost(post.id),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
