@@ -183,4 +183,53 @@ class ChatService {
 
     return newChatRef.id;
   }
+
+  Future<void> markChatAsRead({
+    required String chatId,
+    required String userId,
+  }) async {
+    try {
+      await _db.collection(chatsCollection).doc(chatId).update({
+        // remove this user from the unread list for this chat
+        'unreadFor': FieldValue.arrayRemove([userId]),
+      });
+    } catch (e) {
+      // optional: log for debugging
+      // debugPrint('Failed to mark chat as read: $e');
+    }
+  }
+  // lib/services/chat_service.dart
+
+  /// Watch just the last message in a chat (for unread indicator).
+  Stream<ChatMessage?> watchLastMessage(String chatId) {
+    return _db
+        .collection(chatsCollection)
+        .doc(chatId)
+        .collection(messagesSubcollection)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) return null;
+          final doc = snapshot.docs.first;
+          return ChatMessage.fromMap(doc.id, doc.data());
+        });
+  }
+
+  /// Mark a single message as read by a user.
+  Future<void> markMessageRead({
+    required String chatId,
+    required String messageId,
+    required String userId,
+  }) async {
+    final msgRef = _db
+        .collection(chatsCollection)
+        .doc(chatId)
+        .collection(messagesSubcollection)
+        .doc(messageId);
+
+    await msgRef.update({
+      'readBy': FieldValue.arrayUnion([userId]),
+    });
+  }
 }

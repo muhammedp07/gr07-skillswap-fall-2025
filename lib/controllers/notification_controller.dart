@@ -27,6 +27,13 @@ class NotificationController {
     }
   }
 
+  Future<void> markAllAsRead() async {
+    final uid = currentUserId;
+    if (uid != null) {
+      await _service.markAllAsRead(uid);
+    }
+  }
+
   // Helper for Teammates to trigger notifications easily
   Future<void> triggerNotification({
     required String toUserId,
@@ -36,8 +43,8 @@ class NotificationController {
     String? relatedId,
   }) async {
     // Note: In a real app, 'fromUserId' is the current user.
-    final fromId = currentUserId ?? 'system'; 
-    
+    final fromId = currentUserId ?? 'system';
+
     final notification = NotificationModel(
       id: '', // Firestore generates this
       fromUserId: fromId,

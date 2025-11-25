@@ -1,3 +1,7 @@
+// lib/screens/notifications/notification_screen.dart
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -5,10 +9,38 @@ import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
 import '../chat/chat_screen.dart';
 
-class NotificationScreen extends StatelessWidget {
-  NotificationScreen({super.key});
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({super.key});
 
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
   final NotificationController _controller = NotificationController();
+
+  StreamSubscription<List<NotificationModel>>? _markAllSub;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // As soon as we open this screen, mark all current notifications as read.
+    // This uses the existing controller.markAsRead for each unread item.
+    _markAllSub = _controller.myNotifications.listen((notifs) {
+      for (final n in notifs) {
+        if (!n.isRead) {
+          _controller.markAsRead(n.id);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _markAllSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,27 +97,23 @@ class NotificationScreen extends StatelessWidget {
             ),
           ],
         ),
-
-        /// ✅ When you tap a notification:
         onTap: () {
+          // Still mark this one as read explicitly (safe even if already read)
           _controller.markAsRead(notif.id);
 
-          // If it's a message notification and we have a chatId stored,
-          // open that chat.
+          // If it's a message notification and we have a chatId stored, open that chat.
           if (notif.type == NotificationType.message &&
               notif.relatedId != null &&
               notif.relatedId!.isNotEmpty) {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ChatScreen(
-                  chatId: notif.relatedId!, // we stored chatId here
-                  otherUserId: notif.fromUserId, // the person who messaged you
+                  chatId: notif.relatedId!, // stored chatId
+                  otherUserId: notif.fromUserId, // person who messaged you
                 ),
               ),
             );
           }
-
-          // For other notification types, you can add navigation later.
         },
       ),
     );

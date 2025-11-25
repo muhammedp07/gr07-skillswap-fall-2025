@@ -1,13 +1,15 @@
 // lib/screens/chat/chat_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/chat_models.dart';
 import '../../services/chat_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String otherUserId;
+
   const ChatScreen({
     super.key,
     required this.chatId,
@@ -25,7 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final user = FirebaseAuth.instance.currentUser;
     // Fallback to dummy id if somehow not logged in
     return user?.uid ?? dummyCurrentUserId;
-  } // later from Firebase Auth
+  }
 
   @override
   void dispose() {
@@ -42,7 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await ChatService.instance.sendTextMessageAndNotify(
       chatId: widget.chatId,
       senderId: _currentUserId,
-      recipientId: widget.otherUserId, // ⬅️ who should get the notification
+      recipientId: widget.otherUserId, // who should get the notification
       text: text,
     );
   }
@@ -57,14 +59,32 @@ class _ChatScreenState extends State<ChatScreen> {
             child: StreamBuilder<List<ChatMessage>>(
               stream: ChatService.instance.watchMessages(widget.chatId),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting &&
-                    !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                // When messages arrive, mark the latest incoming one as read
+                List<ChatMessage> messages = [];
 
-                final messages = (snapshot.data?.isNotEmpty ?? false)
-                    ? snapshot.data!
-                    : (dummyMessagesByChatId[widget.chatId] ?? []);
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  messages = snapshot.data!;
+
+                  final last = messages.last;
+                  final isIncoming = last.senderId != _currentUserId;
+                  final alreadyRead = last.readBy.contains(_currentUserId);
+
+                  if (isIncoming && !alreadyRead) {
+                    ChatService.instance.markMessageRead(
+                      chatId: widget.chatId,
+                      messageId: last.id,
+                      userId: _currentUserId,
+                    );
+                  }
+                } else if (snapshot.connectionState ==
+                        ConnectionState.waiting &&
+                    !snapshot.hasData) {
+                  // first load
+                  return const Center(child: CircularProgressIndicator());
+                } else {
+                  // no Firestore messages yet -> fall back to dummy (preview only)
+                  messages = dummyMessagesByChatId[widget.chatId] ?? [];
+                }
 
                 if (messages.isEmpty) {
                   return const Center(

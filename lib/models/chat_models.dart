@@ -9,6 +9,7 @@ class Chat {
   final String lastMessage;
   final DateTime lastMessageAt;
   final String lastMessageSenderId;
+  final List<String> unreadFor;
   final String? postId; // optional: SkillSwap post this chat is about
 
   Chat({
@@ -17,6 +18,7 @@ class Chat {
     required this.lastMessage,
     required this.lastMessageAt,
     required this.lastMessageSenderId,
+    this.unreadFor = const [],
     this.postId,
   });
 

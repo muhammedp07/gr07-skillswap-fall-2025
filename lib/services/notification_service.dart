@@ -13,10 +13,10 @@ class NotificationService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return NotificationModel.fromMap(doc.data(), doc.id);
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            return NotificationModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
   }
 
   // STREAM: Unread count (for the red badge on HomeScreen)
@@ -30,6 +30,30 @@ class NotificationService {
         .map((snapshot) => snapshot.docs.length);
   }
 
+  Future<void> markAllAsRead(String userId) async {
+    try {
+      final userNotifRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications');
+
+      final snapshot = await userNotifRef
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      if (snapshot.docs.isEmpty) return;
+
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      // optional: log for debugging
+      // debugPrint('Failed to mark all notifications as read: $e');
+    }
+  }
+
   // WRITE: Mark as read
   Future<void> markAsRead(String userId, String notificationId) async {
     await _firestore
@@ -41,7 +65,10 @@ class NotificationService {
   }
 
   // WRITE: Send a notification (Used by other features)
-  Future<void> sendNotification(String toUserId, NotificationModel notification) async {
+  Future<void> sendNotification(
+    String toUserId,
+    NotificationModel notification,
+  ) async {
     await _firestore
         .collection('users')
         .doc(toUserId)
