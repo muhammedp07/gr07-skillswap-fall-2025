@@ -275,4 +275,14 @@ class ChatService {
       'readBy': FieldValue.arrayUnion([userId]),
     });
   }
+
+  /// Watch a single chat document by id (for swap status, etc).
+  Stream<Chat?> watchChat(String chatId) {
+    return _db.collection(chatsCollection).doc(chatId).snapshots().map((
+      docSnap,
+    ) {
+      if (!docSnap.exists) return null;
+      return Chat.fromMap(docSnap.id, docSnap.data()!);
+    });
+  }
 }
