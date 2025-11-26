@@ -375,7 +375,9 @@ class _FeedScreenState extends State<FeedScreen> {
         final posts = snapshot.data ?? [];
         final filteredPosts = _applyAdvancedFilter(posts);
 
-        if (filteredPosts.isEmpty) {
+        final sortedPosts = _sortPostsByRelevance(filteredPosts);
+
+        if (sortedPosts.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32.0),
@@ -460,9 +462,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: filteredPosts.length,
+          itemCount: sortedPosts.length,
           itemBuilder: (context, index) {
-            return _buildPostCard(filteredPosts[index]);
+            return _buildPostCard(sortedPosts[index]);
           },
         );
       },
@@ -574,6 +576,22 @@ class _FeedScreenState extends State<FeedScreen> {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isOwnPost = currentUserId != null && post.userId == currentUserId;
     final matchScore = _calculateMatchScore(post);
+    final comprehensiveScore = _calculateComprehensiveMatchScore(post);
+
+    // Determine relevance badge
+    String? relevanceBadge;
+    Color? badgeColor;
+
+    if (matchScore > 0) {
+      relevanceBadge = 'Perfect Match!';
+      badgeColor = Colors.green;
+    } else if (comprehensiveScore >= 1.0) {
+      relevanceBadge = 'Good Match';
+      badgeColor = Colors.blue;
+    } else if (comprehensiveScore > 0) {
+      relevanceBadge = 'Related';
+      badgeColor = Colors.orange;
+    }
 
     return InkWell(
       onTap: () {
@@ -589,7 +607,7 @@ class _FeedScreenState extends State<FeedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Info
+              // User Info with relevance badge
               Row(
                 children: [
                   CircleAvatar(
@@ -618,7 +636,26 @@ class _FeedScreenState extends State<FeedScreen> {
                       ],
                     ),
                   ),
-                  if (matchScore > 0)
+                  if (relevanceBadge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        relevanceBadge,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  if (matchScore > 0 && relevanceBadge == null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
