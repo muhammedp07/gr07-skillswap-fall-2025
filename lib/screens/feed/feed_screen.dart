@@ -35,6 +35,10 @@ class _FeedScreenState extends State<FeedScreen> {
   String? _selectedTeachFilterSkill;
   String? _selectedLearnFilterSkill;
 
+  // New state for feed preferences
+  bool _showOnlyMatches = false;
+  double _minRelevanceThreshold = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -159,6 +163,9 @@ class _FeedScreenState extends State<FeedScreen> {
           // Filter Section
           _buildFilterSection(),
 
+          // Smart Feed Controls
+          _buildSmartFeedControls(),
+
           // Posts List
           Expanded(child: _buildPostsList()),
         ],
@@ -216,6 +223,33 @@ class _FeedScreenState extends State<FeedScreen> {
         if (_selectedFilter == 'learn' || _selectedFilter == 'teach')
           _buildSkillFilterChips(),
       ],
+    );
+  }
+
+  Widget _buildSmartFeedControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              _showOnlyMatches
+                  ? "Showing relevant matches only"
+                  : "Smart feed: Best matches first",
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+          Switch(
+            value: _showOnlyMatches,
+            onChanged: (value) {
+              setState(() {
+                _showOnlyMatches = value;
+              });
+            },
+            activeColor: Colors.blue,
+          ),
+        ],
+      ),
     );
   }
 
@@ -373,7 +407,7 @@ class _FeedScreenState extends State<FeedScreen> {
         }
 
         final posts = snapshot.data ?? [];
-        final filteredPosts = _applyAdvancedFilter(posts);
+        final filteredPosts = _applySmartFilter(posts);
 
         final sortedPosts = _sortPostsByRelevance(filteredPosts);
 
@@ -567,6 +601,22 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
           )
           .toList();
+    }
+
+    return filteredPosts;
+  }
+
+  List<Post> _applySmartFilter(List<Post> posts) {
+    if (_currentUserProfile == null) return posts;
+
+    List<Post> filteredPosts = _applyAdvancedFilter(posts);
+
+    // Apply relevance threshold if enabled
+    if (_showOnlyMatches) {
+      filteredPosts = filteredPosts.where((post) {
+        final score = _calculateComprehensiveMatchScore(post);
+        return score >= _minRelevanceThreshold;
+      }).toList();
     }
 
     return filteredPosts;
