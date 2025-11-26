@@ -131,7 +131,7 @@ class _ProfileViewState extends State<ProfileView> {
           // Skills I Can Teach Section
           _buildSkillSection(
             title: "Skills I Teach",
-            skills: _profile!.skillsTeach,
+            skills: _profile!.skillsTeachDisplay,
             color: Colors.grey.withOpacity(0.2),
             textColor: Colors.grey.shade400,
           ),
@@ -141,7 +141,7 @@ class _ProfileViewState extends State<ProfileView> {
           // Skills I Want To Learn Section
           _buildSkillSection(
             title: "Skills I Want To Learn",
-            skills: _profile!.skillsLearn,
+            skills: _profile!.skillsLearnDisplay,
             color: Colors.grey.withOpacity(0.2),
             textColor: Colors.grey.shade400,
           ),

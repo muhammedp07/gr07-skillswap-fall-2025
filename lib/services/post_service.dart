@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post.dart';
+import '../models/skill_entry.dart';
 
 class PostService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -22,7 +23,7 @@ class PostService {
   }
 
   // Get posts filtered by skills (for intelligent matching)
-  Stream<List<Post>> getPostsForUser(List<String> userSkillsTeach, List<String> userSkillsLearn) {
+  Stream<List<Post>> getPostsForUser(List<SkillEntry> userSkillsTeach, List<SkillEntry> userSkillsLearn) {
     return _db.collection('posts')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -41,34 +42,37 @@ class PostService {
   }
 
   // Calculate how relevant a post is to the current user
-  int _calculateRelevanceScore(Post post, List<String> userSkillsTeach, List<String> userSkillsLearn) {
+  int _calculateRelevanceScore(Post post, List<SkillEntry> userSkillsTeach, List<SkillEntry> userSkillsLearn) {
     int score = 0;
     
     // User can teach what the post wants to learn
-    for (String skill in post.skillsLearn) {
+    for (SkillEntry skill in post.skillsLearn) {
       if (userSkillsTeach.contains(skill)) score += 2;
     }
     
     // User wants to learn what the post can teach
-    for (String skill in post.skillsTeach) {
+    for (SkillEntry skill in post.skillsTeach) {
       if (userSkillsLearn.contains(skill)) score += 2;
     }
     
     return score;
   }
 
-  // Search posts by skill, name, or major
+  // Search posts by skill tag, name, or major
   Stream<List<Post>> searchPosts(String query) {
+    final lowerQuery = query.toLowerCase();
     return _db.collection('posts')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Post.fromMap(doc.data()))
             .where((post) =>
-                post.skillsTeach.any((skill) => skill.toLowerCase().contains(query.toLowerCase())) ||
-                post.skillsLearn.any((skill) => skill.toLowerCase().contains(query.toLowerCase())) ||
-                post.userName.toLowerCase().contains(query.toLowerCase()) ||
-                (post.userMajor.toLowerCase().contains(query.toLowerCase())))
+                post.skillsTeach.any((skill) => skill.tag.contains(lowerQuery) || 
+                                                 skill.displayTag.toLowerCase().contains(lowerQuery)) ||
+                post.skillsLearn.any((skill) => skill.tag.contains(lowerQuery) || 
+                                                 skill.displayTag.toLowerCase().contains(lowerQuery)) ||
+                post.userName.toLowerCase().contains(lowerQuery) ||
+                post.userMajor.toLowerCase().contains(lowerQuery))
             .toList());
   }
 

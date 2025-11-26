@@ -15,12 +15,12 @@ class PostDetailScreen extends StatelessWidget {
   const PostDetailScreen({super.key, required this.post});
 
   String _buildMainSkill() {
-    // Use first teach skill as the “title”, or fall back to a generic label
+    // Use first teach skill as the "title", or fall back to a generic label
     if (post.skillsTeach.isNotEmpty) {
-      return post.skillsTeach.first;
+      return post.skillsTeach.first.displaySkill;
     }
     if (post.skillsLearn.isNotEmpty) {
-      return post.skillsLearn.first;
+      return post.skillsLearn.first.displaySkill;
     }
     return 'Skill Swap';
   }
@@ -163,7 +163,7 @@ class PostDetailScreen extends StatelessWidget {
                       // Offers (Can Teach)
                       ...post.skillsTeach.map(
                         (skill) => _buildPillChip(
-                          label: 'Offers: $skill',
+                          label: 'Offers: ${skill.displaySkill}',
                           background: const Color(0xFF1F2A5A),
                         ),
                       ),
@@ -171,7 +171,7 @@ class PostDetailScreen extends StatelessWidget {
                       // Wants (Wants to Learn)
                       ...post.skillsLearn.map(
                         (skill) => _buildPillChip(
-                          label: 'Wants: $skill',
+                          label: 'Wants: ${skill.displaySkill}',
                           background: const Color(0xFF264C5E),
                         ),
                       ),

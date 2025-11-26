@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/post.dart';
 import '../../models/user_profile.dart';
+import '../../models/skill_entry.dart';
 import '../../services/post_service.dart';
 import '../../services/user_service.dart';
+import '../../services/skill_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final Function(int)? onTabChange;
@@ -21,32 +23,14 @@ class CreatePostScreen extends StatefulWidget {
 class CreatePostScreenState extends State<CreatePostScreen> {
   final PostService _postService = PostService();
   final UserService _userService = UserService();
+  final SkillService _skillService = SkillService();
 
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _availabilityController = TextEditingController();
 
-  List<String> _selectedTeachSkills = [];
-  List<String> _selectedLearnSkills = [];
+  List<SkillEntry> _selectedTeachSkills = [];
+  List<SkillEntry> _selectedLearnSkills = [];
   bool _isSubmitting = false;
-
-  // Track which skills are mutually exclusive
-  final Map<String, String> _skillCategories = {}; // skill -> 'teach' or 'learn'
-
-  final List<String> _allSkills = [
-    "Python",
-    "Java",
-    "C++",
-    "Web Development",
-    "UI/UX",
-    "Flutter",
-    "Cooking",
-    "Photography",
-    "Painting",
-    "Music",
-    "Editing",
-    "Data Analysis",
-    "Public Speaking",
-  ];
 
   UserProfile? _currentUserProfile;
 
@@ -54,14 +38,11 @@ class CreatePostScreenState extends State<CreatePostScreen> {
   void initState() {
     super.initState();
     _loadUserProfile();
-    _initializeSkillCategories();
+    _initializeSkills();
   }
 
-  void _initializeSkillCategories() {
-    // Initialize all skills as available for both categories
-    for (final skill in _allSkills) {
-      _skillCategories[skill] = 'available'; // available, teach, or learn
-    }
+  Future<void> _initializeSkills() async {
+    await _skillService.initializeDefaultSkills();
   }
 
   Future<void> _loadUserProfile() async {
@@ -70,14 +51,6 @@ class CreatePostScreenState extends State<CreatePostScreen> {
     if (doc.exists) {
       setState(() {
         _currentUserProfile = UserProfile.fromMap(doc.data()!);
-        
-        // Pre-categorize skills from user profile
-        for (final skill in _currentUserProfile!.skillsTeach) {
-          _skillCategories[skill] = 'teach';
-        }
-        for (final skill in _currentUserProfile!.skillsLearn) {
-          _skillCategories[skill] = 'learn';
-        }
       });
     }
   }
@@ -135,7 +108,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
 
                   // Skills I Can Teach Section
                   const Text(
-                    "Skills I Can TEACH in this swap:",
+                    "Skills I Can TEACH in this swap",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -144,12 +117,13 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Select skills you're comfortable teaching to others",
-                    style: TextStyle(color: Colors.white70),
+                    "Select from your teaching skills",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                   const SizedBox(height: 12),
                   _buildSkillChips(
-                    selectedList: _selectedTeachSkills,
+                    availableSkills: _currentUserProfile!.skillsTeach,
+                    selectedSkills: _selectedTeachSkills,
                     isTeachSection: true,
                   ),
 
@@ -157,7 +131,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
 
                   // Skills I Want to Learn Section
                   const Text(
-                    "Skills I Want to LEARN in this swap:",
+                    "Skills I Want to LEARN in this swap",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -166,12 +140,13 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Select skills you want to learn from others",
-                    style: TextStyle(color: Colors.white70),
+                    "Select from your learning skills",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                   const SizedBox(height: 12),
                   _buildSkillChips(
-                    selectedList: _selectedLearnSkills,
+                    availableSkills: _currentUserProfile!.skillsLearn,
+                    selectedSkills: _selectedLearnSkills,
                     isTeachSection: false,
                   ),
 
@@ -258,132 +233,91 @@ class CreatePostScreenState extends State<CreatePostScreen> {
     );
   }
 
+  // Public method that can be called from HomeScreen
+  void submitPost() {
+    _submitPost();
+  }
+
   Widget _buildSkillChips({
-    required List<String> selectedList,
+    required List<SkillEntry> availableSkills,
+    required List<SkillEntry> selectedSkills,
     required bool isTeachSection,
   }) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: _allSkills.map((skill) {
-        final bool isSelected = selectedList.contains(skill);
-        final String? skillCategory = _skillCategories[skill];
-        
-        // Determine if skill should be disabled
-        bool isDisabled = false;
-        String disabledReason = '';
-        
-        if (isTeachSection) {
-          // In Teach section, disable if skill is categorized as 'learn'
-          if (skillCategory == 'learn') {
-            isDisabled = true;
-            disabledReason = 'Already in your Learn skills';
-          }
-        } else {
-          // In Learn section, disable if skill is categorized as 'teach'
-          if (skillCategory == 'teach') {
-            isDisabled = true;
-            disabledReason = 'Already in your Teach skills';
-          }
-        }
+    if (availableSkills.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Text(
+          isTeachSection
+              ? "No teaching skills in your profile. Add skills in your profile settings."
+              : "No learning skills in your profile. Add skills in your profile settings.",
+          style: const TextStyle(color: Colors.white70),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
 
-        return Tooltip(
-          message: isDisabled ? disabledReason : '',
-          child: GestureDetector(
-            onTap: isDisabled ? null : () => _toggleSkill(skill, isTeachSection),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              decoration: BoxDecoration(
-                color: isDisabled
-                    ? Colors.grey.withOpacity(0.3)
-                    : isSelected
-                    ? isTeachSection
-                        ? Colors.green.withOpacity(0.3)
-                        : Colors.red.withOpacity(0.3)
-                    : const Color(0xFF1A1D36),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isDisabled
-                      ? Colors.grey
-                      : isSelected
-                      ? isTeachSection
-                          ? Colors.green
-                          : Colors.red
-                      : Colors.white30,
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    skill,
-                    style: TextStyle(
-                      color: isDisabled ? Colors.white30 : Colors.white,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                  if (isSelected) ...[
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.check,
-                      size: 16,
-                      color: isTeachSection ? Colors.green : Colors.red,
-                    ),
-                  ],
-                ],
-              ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: availableSkills.map((skill) {
+        final isSelected = selectedSkills.contains(skill);
+        final isDisabled = isTeachSection
+            ? _selectedLearnSkills.contains(skill)
+            : _selectedTeachSkills.contains(skill);
+
+        return FilterChip(
+          label: Text(skill.displaySkill),
+          selected: isSelected,
+          onSelected: isDisabled
+              ? null
+              : (selected) {
+                  setState(() {
+                    if (selected) {
+                      if (isTeachSection) {
+                        _selectedTeachSkills.add(skill);
+                      } else {
+                        _selectedLearnSkills.add(skill);
+                      }
+                    } else {
+                      if (isTeachSection) {
+                        _selectedTeachSkills.remove(skill);
+                      } else {
+                        _selectedLearnSkills.remove(skill);
+                      }
+                    }
+                  });
+                },
+          backgroundColor: Colors.grey.withOpacity(0.2),
+          selectedColor: isTeachSection
+              ? Colors.green.withOpacity(0.3)
+              : Colors.orange.withOpacity(0.3),
+          disabledColor: Colors.grey.withOpacity(0.1),
+          labelStyle: TextStyle(
+            color: isDisabled
+                ? Colors.white38
+                : isSelected
+                    ? Colors.white
+                    : Colors.white70,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+          checkmarkColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isSelected
+                  ? (isTeachSection ? Colors.green : Colors.orange)
+                  : Colors.white24,
+              width: isSelected ? 2 : 1,
             ),
           ),
         );
       }).toList(),
     );
-  }
-
-  void _toggleSkill(String skill, bool isTeachSection) {
-    setState(() {
-      if (isTeachSection) {
-        if (_selectedTeachSkills.contains(skill)) {
-          _selectedTeachSkills.remove(skill);
-          // Only reset category if not predefined in profile
-          if (!_currentUserProfile!.skillsTeach.contains(skill)) {
-            _skillCategories[skill] = 'available';
-          }
-        } else {
-          _selectedTeachSkills.add(skill);
-          _skillCategories[skill] = 'teach';
-          
-          // Remove from learn if it was there
-          if (_selectedLearnSkills.contains(skill)) {
-            _selectedLearnSkills.remove(skill);
-          }
-        }
-      } else {
-        if (_selectedLearnSkills.contains(skill)) {
-          _selectedLearnSkills.remove(skill);
-          // Only reset category if not predefined in profile
-          if (!_currentUserProfile!.skillsLearn.contains(skill)) {
-            _skillCategories[skill] = 'available';
-          }
-        } else {
-          _selectedLearnSkills.add(skill);
-          _skillCategories[skill] = 'learn';
-          
-          // Remove from teach if it was there
-          if (_selectedTeachSkills.contains(skill)) {
-            _selectedTeachSkills.remove(skill);
-          }
-        }
-      }
-    });
-  }
-
-  // Public method that can be called from HomeScreen
-  void submitPost() {
-    _submitPost();
   }
 
   Future<void> _submitPost() async {
@@ -400,27 +334,6 @@ class CreatePostScreenState extends State<CreatePostScreen> {
         "Please select up to 6 skills total (3 teach + 3 learn recommended).",
       );
       return;
-    }
-
-    // Check for mutual exclusion violations
-    for (final skill in _selectedTeachSkills) {
-      if (_skillCategories[skill] == 'learn') {
-        _showError(
-          "Skill '$skill' cannot be in both Teach and Learn sections. "
-          "It is already categorized as a Learn skill.",
-        );
-        return;
-      }
-    }
-
-    for (final skill in _selectedLearnSkills) {
-      if (_skillCategories[skill] == 'teach') {
-        _showError(
-          "Skill '$skill' cannot be in both Teach and Learn sections. "
-          "It is already categorized as a Teach skill.",
-        );
-        return;
-      }
     }
 
     setState(() => _isSubmitting = true);
@@ -491,8 +404,9 @@ class CreatePostScreenState extends State<CreatePostScreen> {
       }
     }
 
-    updatedTeachSkills.removeWhere((skill) => _skillCategories[skill] == 'learn');
-    updatedLearnSkills.removeWhere((skill) => _skillCategories[skill] == 'teach');
+    // Remove skills that are now in the opposite category
+    updatedTeachSkills.removeWhere((skill) => _selectedLearnSkills.contains(skill));
+    updatedLearnSkills.removeWhere((skill) => _selectedTeachSkills.contains(skill));
 
     final updatedProfile = UserProfile(
       uid: _currentUserProfile!.uid,
@@ -500,6 +414,8 @@ class CreatePostScreenState extends State<CreatePostScreen> {
       major: _currentUserProfile!.major,
       skillsTeach: updatedTeachSkills,
       skillsLearn: updatedLearnSkills,
+      profileImageUrl: _currentUserProfile!.profileImageUrl,
+      bio: _currentUserProfile!.bio,
     );
 
     await _userService.updateUserProfile(updatedProfile);
@@ -511,17 +427,6 @@ class CreatePostScreenState extends State<CreatePostScreen> {
       _selectedLearnSkills.clear();
       _descriptionController.clear();
       _availabilityController.clear();
-      _initializeSkillCategories();
-      
-      // Re-initialize with profile skills
-      if (_currentUserProfile != null) {
-        for (final skill in _currentUserProfile!.skillsTeach) {
-          _skillCategories[skill] = 'teach';
-        }
-        for (final skill in _currentUserProfile!.skillsLearn) {
-          _skillCategories[skill] = 'learn';
-        }
-      }
     });
   }
 
