@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../models/chat_models.dart' as chat_models; // 👈 use prefix
+import '../../models/chat_models.dart' as chat_models;
 import '../../services/chat_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -27,26 +27,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final user = FirebaseAuth.instance.currentUser;
     // Fallback to dummy id if somehow not logged in
     return user?.uid ?? chat_models.dummyCurrentUserId;
-  }
-
-  Future<void> _handleMarkSwapDone() async {
-    try {
-      await ChatService.instance.updateSwapStatus(
-        chatId: widget.chatId,
-        status: chat_models.SwapStatus.completed,
-        markedByUserId: _currentUserId,
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Swap marked as completed.')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to update swap: $e')));
-    }
   }
 
   @override
@@ -75,63 +55,64 @@ class _ChatScreenState extends State<ChatScreen> {
       status: chat_models.SwapStatus.completed,
       markedByUserId: _currentUserId,
     );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Swap marked as completed')));
   }
 
   @override
   Widget build(BuildContext context) {
+    // 👇 Listen to the chat doc so we know the current swapStatus
     return StreamBuilder<chat_models.Chat?>(
       stream: ChatService.instance.watchChat(widget.chatId),
-      builder: (context, chatSnap) {
-        final chat = chatSnap.data;
+      builder: (context, chatSnapshot) {
+        final chat = chatSnapshot.data;
         final isCompleted =
             chat?.swapStatus == chat_models.SwapStatus.completed;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Chat')),
-          body: Column(
-            children: [
-              // 🔹 Swap status banner
-              if (chat != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+          appBar: AppBar(
+            title: const Text('Chat'),
+            actions: [
+              if (isCompleted)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.greenAccent),
+                      ),
+                      child: const Text(
+                        'Swap completed',
+                        style: TextStyle(
+                          color: Colors.greenAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                  color: isCompleted
-                      ? Colors.green.withOpacity(0.2)
-                      : Colors.blueGrey.withOpacity(0.2),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isCompleted ? Icons.check_circle : Icons.swap_horiz,
-                        color: isCompleted ? Colors.green : Colors.white70,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          isCompleted
-                              ? 'This swap has been marked as completed.'
-                              : 'This swap is still open.',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      if (!isCompleted)
-                        TextButton(
-                          onPressed: _handleMarkSwapDone,
-                          child: const Text('Mark done'),
-                        ),
-                    ],
+                )
+              else
+                TextButton.icon(
+                  onPressed: _markSwapCompleted,
+                  icon: const Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Mark done',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
-
-              // 🔹 Messages + input (your existing code)
+            ],
+          ),
+          body: Column(
+            children: [
               Expanded(
                 child: StreamBuilder<List<chat_models.ChatMessage>>(
                   stream: ChatService.instance.watchMessages(widget.chatId),
