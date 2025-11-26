@@ -2,17 +2,16 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// A rating / review given after a SkillSwap
-class SwapReview {
-  final String id; // Firestore doc id
-  final String chatId; // which chat this review belongs to
-  final String fromUserId; // who wrote the review
-  final String toUserId; // who is being reviewed
+class Review {
+  final String id;
+  final String chatId;
+  final String fromUserId;
+  final String toUserId;
   final int rating; // 1–5 stars
-  final String? comment; // optional text feedback
+  final String? comment;
   final DateTime createdAt;
 
-  SwapReview({
+  Review({
     required this.id,
     required this.chatId,
     required this.fromUserId,
@@ -22,10 +21,10 @@ class SwapReview {
     required this.createdAt,
   });
 
-  factory SwapReview.fromMap(String id, Map<String, dynamic> map) {
+  factory Review.fromMap(String id, Map<String, dynamic> map) {
     final rawCreated = map['createdAt'];
-    DateTime createdAt;
 
+    DateTime createdAt;
     if (rawCreated is Timestamp) {
       createdAt = rawCreated.toDate();
     } else if (rawCreated is int) {
@@ -34,13 +33,13 @@ class SwapReview {
       createdAt = DateTime.now();
     }
 
-    return SwapReview(
+    return Review(
       id: id,
-      chatId: map['chatId'] as String? ?? '',
-      fromUserId: map['fromUserId'] as String? ?? '',
-      toUserId: map['toUserId'] as String? ?? '',
-      rating: (map['rating'] as num?)?.toInt() ?? 0,
-      comment: map['comment'] as String?,
+      chatId: map['chatId'] ?? '',
+      fromUserId: map['fromUserId'] ?? '',
+      toUserId: map['toUserId'] ?? '',
+      rating: (map['rating'] ?? 0) as int,
+      comment: map['comment'],
       createdAt: createdAt,
     );
   }
