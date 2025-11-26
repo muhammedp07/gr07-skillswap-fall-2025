@@ -8,6 +8,7 @@ import '../../services/chat_service.dart';
 import '../chat/chat_screen.dart';
 import '../../models/user_profile.dart';
 import '../../services/user_service.dart';
+import '../../services/review_service.dart'; // ⭐ NEW
 
 class PostDetailScreen extends StatelessWidget {
   final Post post;
@@ -82,7 +83,7 @@ class PostDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🔹 Large header card with profile info
+                  // 🔹 Large header card with profile info + live rating
                   FutureBuilder<UserProfile?>(
                     future: UserService().getUserProfile(post.userId),
                     builder: (context, snap) {
@@ -129,7 +130,18 @@ class PostDetailScreen extends StatelessWidget {
                         );
                       }
 
-                      return _buildUserHeader(post, snap.data!);
+                      final profile = snap.data!;
+
+                      // ⭐ NEW: listen to rating summary for this user
+                      return StreamBuilder<RatingSummary>(
+                        stream: ReviewService.instance.watchRatingForUser(
+                          profile.uid,
+                        ),
+                        builder: (context, ratingSnap) {
+                          final summary = ratingSnap.data;
+                          return _buildUserHeader(post, profile, summary);
+                        },
+                      );
                     },
                   ),
 
@@ -265,80 +277,82 @@ class PostDetailScreen extends StatelessWidget {
     );
   }
 
-  // 🔹 Premium-style header container
-  Widget _buildUserHeader(Post post, UserProfile profile) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF20254A), Color(0xFF151936)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  // 🔹 Header: avatar + name + major + rating summary
+  Widget _buildUserHeader(
+    Post post,
+    UserProfile profile,
+    RatingSummary? summary,
+  ) {
+    final hasReviews = summary != null && summary.count > 0;
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 32,
+          backgroundImage:
+              (profile.profileImageUrl != null &&
+                  profile.profileImageUrl!.isNotEmpty)
+              ? NetworkImage(profile.profileImageUrl!)
+              : null,
+          child:
+              (profile.profileImageUrl == null ||
+                  profile.profileImageUrl!.isEmpty)
+              ? Text(
+                  profile.name.isNotEmpty ? profile.name[0].toUpperCase() : '?',
+                  style: const TextStyle(fontSize: 28, color: Colors.white),
+                )
+              : null,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundImage:
-                (profile.profileImageUrl != null &&
-                    profile.profileImageUrl!.isNotEmpty)
-                ? NetworkImage(profile.profileImageUrl!)
-                : null,
-            backgroundColor: const Color(0xFF2F3E86),
-            child:
-                (profile.profileImageUrl == null ||
-                    profile.profileImageUrl!.isEmpty)
-                ? Text(
-                    profile.name.isNotEmpty
-                        ? profile.name[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.name,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  profile.major,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "Member since 2023",
-                  style: TextStyle(color: Colors.white38, fontSize: 12),
-                ),
-              ],
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              profile.name,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
-      ),
+            Text(
+              profile.major,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const Text(
+              "Member since 2023",
+              style: TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+            const SizedBox(height: 6),
+
+            // ⭐ Rating summary
+            if (hasReviews)
+              Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber, size: 18),
+                  const SizedBox(width: 4),
+                  Text(
+                    summary!.average.toStringAsFixed(1),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '(${summary.count} review${summary.count == 1 ? '' : 's'})',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              )
+            else
+              const Text(
+                'No reviews yet',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

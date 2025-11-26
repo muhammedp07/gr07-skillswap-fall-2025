@@ -4,6 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/review.dart';
 
+/// Small helper model for rating summary (avg + count).
+class RatingSummary {
+  final double average;
+  final int count;
+
+  const RatingSummary({required this.average, required this.count});
+}
+
 class ReviewService {
   ReviewService._();
 
@@ -44,7 +52,7 @@ class ReviewService {
     await docRef.set(review.toMap());
   }
 
-  /// Optionally: get all reviews received by a user (for later profile stats).
+  /// Get a live list of all reviews received by a user.
   Stream<List<Review>> watchReviewsForUser(String userId) {
     return _db
         .collection(reviewsCollection)
@@ -54,5 +62,32 @@ class ReviewService {
           (snap) =>
               snap.docs.map((d) => Review.fromMap(d.id, d.data())).toList(),
         );
+  }
+
+  /// 🔹 NEW: live rating summary (average + count) for a user.
+  ///
+  /// This is what you'll use in the header to show:
+  /// "4.5 ★ • 3 reviews"  or "No reviews yet".
+  Stream<RatingSummary> watchRatingForUser(String userId) {
+    return _db
+        .collection(reviewsCollection)
+        .where('toUserId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) {
+            return const RatingSummary(average: 0.0, count: 0);
+          }
+
+          double sum = 0;
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final rating = (data['rating'] as num?)?.toDouble() ?? 0.0;
+            sum += rating;
+          }
+
+          final count = snapshot.docs.length;
+          final avg = sum / count;
+          return RatingSummary(average: avg, count: count);
+        });
   }
 }
