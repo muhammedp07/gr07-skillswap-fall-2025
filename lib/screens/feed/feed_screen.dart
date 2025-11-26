@@ -222,13 +222,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   if (_currentUserProfile == null) {
                     isFromProfile = false;
                   } else if (_selectedFilter == 'learn') {
-                    isFromProfile = _currentUserProfile!.skillsLearnDisplay.contains(
-                      skill,
-                    );
+                    isFromProfile = _currentUserProfile!.skillsLearnDisplay
+                        .contains(skill);
                   } else {
-                    isFromProfile = _currentUserProfile!.skillsTeachDisplay.contains(
-                      skill,
-                    );
+                    isFromProfile = _currentUserProfile!.skillsTeachDisplay
+                        .contains(skill);
                   }
 
                   return Tooltip(
@@ -432,6 +430,7 @@ class _FeedScreenState extends State<FeedScreen> {
     return {...userSkills, ...discoveredSkills}.toList()..sort();
   }
 
+  // In feed_screen.dart - Update the _applyAdvancedFilter methodgit 
   List<Post> _applyAdvancedFilter(List<Post> posts) {
     if (_currentUserProfile == null) return posts;
 
@@ -441,25 +440,27 @@ class _FeedScreenState extends State<FeedScreen> {
     // Apply main filter
     switch (_selectedFilter) {
       case 'teach':
-        // Show posts where users want to learn skills that current user can teach
         filteredPosts = posts
             .where(
               (post) =>
                   post.userId != currentUserId && // Exclude own posts
                   post.skillsLearn.any(
-                    (skill) => _currentUserProfile!.skillsTeachSimple.any((s) => s == skill),
+                    (skill) => _currentUserProfile!.skillsTeachSimple.any(
+                      (s) => s == skill,
+                    ),
                   ),
             )
             .toList();
         break;
       case 'learn':
-        // Show posts where users can teach skills that current user wants to learn
         filteredPosts = posts
             .where(
               (post) =>
                   post.userId != currentUserId && // Exclude own posts
                   post.skillsTeach.any(
-                    (skill) => _currentUserProfile!.skillsLearnSimple.any((s) => s == skill),
+                    (skill) => _currentUserProfile!.skillsLearnSimple.any(
+                      (s) => s == skill,
+                    ),
                   ),
             )
             .toList();
@@ -471,16 +472,22 @@ class _FeedScreenState extends State<FeedScreen> {
 
     // Apply skill-specific filters
     if (_selectedLearnFilterSkill != null) {
-      // _selectedLearnFilterSkill is a display string, need to match against displaySkill
       filteredPosts = filteredPosts
-          .where((post) => post.skillsTeach.any((s) => s.displaySkill == _selectedLearnFilterSkill))
+          .where(
+            (post) => post.skillsTeach.any(
+              (s) => s.displaySkill == _selectedLearnFilterSkill,
+            ),
+          )
           .toList();
     }
 
     if (_selectedTeachFilterSkill != null) {
-      // _selectedTeachFilterSkill is a display string, need to match against displaySkill
       filteredPosts = filteredPosts
-          .where((post) => post.skillsLearn.any((s) => s.displaySkill == _selectedTeachFilterSkill))
+          .where(
+            (post) => post.skillsLearn.any(
+              (s) => s.displaySkill == _selectedTeachFilterSkill,
+            ),
+          )
           .toList();
     }
 
@@ -704,11 +711,13 @@ class _FeedScreenState extends State<FeedScreen> {
     int score = 0;
     // User can teach what the post wants to learn
     for (final skill in post.skillsLearn) {
-      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill)) score++;
+      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill))
+        score++;
     }
     // User wants to learn what the post can teach
     for (final skill in post.skillsTeach) {
-      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill)) score++;
+      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill))
+        score++;
     }
     return score;
   }
