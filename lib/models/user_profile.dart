@@ -9,6 +9,12 @@ class UserProfile {
   final String? profileImageUrl;
   final String? bio;
 
+  /// Average rating given by other users (0.0–5.0).
+  final double avgRating;
+
+  /// How many reviews were submitted for this user.
+  final int reviewsCount;
+
   UserProfile({
     required this.uid,
     required this.name,
@@ -17,18 +23,20 @@ class UserProfile {
     required this.skillsLearn,
     this.profileImageUrl,
     this.bio,
+    this.avgRating = 0.0,
+    this.reviewsCount = 0,
   });
 
   // Helper getters for display
-  List<String> get skillsTeachDisplay => 
+  List<String> get skillsTeachDisplay =>
       skillsTeach.map((skill) => skill.displaySkill).toList();
-  
-  List<String> get skillsLearnDisplay => 
+
+  List<String> get skillsLearnDisplay =>
       skillsLearn.map((skill) => skill.displaySkill).toList();
-  
+
   // Helper getters for skill entries (normalized)
   List<SkillEntry> get skillsTeachSimple => skillsTeach;
-  
+
   List<SkillEntry> get skillsLearnSimple => skillsLearn;
 
   Map<String, dynamic> toMap() {
@@ -40,6 +48,10 @@ class UserProfile {
       'skillsLearn': skillsLearn.map((skill) => skill.toMap()).toList(),
       'profileImageUrl': profileImageUrl,
       'bio': bio,
+
+      // ⭐ NEW: rating fields (will default to 0.0 / 0 in Firestore if not set)
+      'avgRating': avgRating,
+      'reviewsCount': reviewsCount,
     };
   }
 
@@ -68,6 +80,14 @@ class UserProfile {
       return [];
     }
 
+    final double parsedAvgRating = (map['avgRating'] is num)
+        ? (map['avgRating'] as num).toDouble()
+        : 0.0;
+
+    final int parsedReviewsCount = (map['reviewsCount'] is num)
+        ? (map['reviewsCount'] as num).toInt()
+        : 0;
+
     return UserProfile(
       uid: map['uid'],
       name: map['name'],
@@ -76,6 +96,10 @@ class UserProfile {
       skillsLearn: parseSkills(map['skillsLearn']),
       profileImageUrl: map['profileImageUrl'],
       bio: map['bio'],
+
+      // pass parsed values (or defaults)
+      avgRating: parsedAvgRating,
+      reviewsCount: parsedReviewsCount,
     );
   }
 }
