@@ -70,6 +70,83 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  // New method to calculate comprehensive match score
+  double _calculateComprehensiveMatchScore(Post post) {
+    if (_currentUserProfile == null) return 0.0;
+
+    double score = 0.0;
+
+    // Perfect matches (user can teach what post wants to learn)
+    for (final skill in post.skillsLearn) {
+      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill)) {
+        score += 2.0; // High weight for perfect matches
+      }
+    }
+
+    // Perfect matches (user wants to learn what post can teach)
+    for (final skill in post.skillsTeach) {
+      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill)) {
+        score += 2.0; // High weight for perfect matches
+      }
+    }
+
+    // Category-based matches (lower weight)
+    final userTeachCategories = _currentUserProfile!.skillsTeach
+        .map((s) => s.category)
+        .toSet();
+    final userLearnCategories = _currentUserProfile!.skillsLearn
+        .map((s) => s.category)
+        .toSet();
+
+    for (final skill in post.skillsLearn) {
+      if (userTeachCategories.contains(skill.category)) {
+        score += 0.5; // Same category but different skill
+      }
+    }
+
+    for (final skill in post.skillsTeach) {
+      if (userLearnCategories.contains(skill.category)) {
+        score += 0.5; // Same category but different skill
+      }
+    }
+
+    return score;
+  }
+
+  // New method to sort posts by relevance
+  List<Post> _sortPostsByRelevance(List<Post> posts) {
+    if (_currentUserProfile == null) return posts;
+
+    final scoredPosts = posts.map((post) {
+      return {
+        'post': post,
+        'score': _calculateComprehensiveMatchScore(post),
+        'isPerfectMatch': _calculateMatchScore(post) > 0,
+      };
+    }).toList();
+
+    // Sort by: perfect matches first, then by score, then by timestamp
+    scoredPosts.sort((a, b) {
+      final aPerfect = a['isPerfectMatch'] as bool;
+      final bPerfect = b['isPerfectMatch'] as bool;
+
+      if (aPerfect && !bPerfect) return -1;
+      if (!aPerfect && bPerfect) return 1;
+
+      final aScore = a['score'] as double;
+      final bScore = b['score'] as double;
+
+      if (aScore != bScore) return bScore.compareTo(aScore);
+
+      // Fall back to recent posts
+      final aPost = a['post'] as Post;
+      final bPost = b['post'] as Post;
+      return bPost.createdAt.compareTo(aPost.createdAt);
+    });
+
+    return scoredPosts.map((item) => item['post'] as Post).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -430,7 +507,6 @@ class _FeedScreenState extends State<FeedScreen> {
     return {...userSkills, ...discoveredSkills}.toList()..sort();
   }
 
-  // In feed_screen.dart - Update the _applyAdvancedFilter methodgit 
   List<Post> _applyAdvancedFilter(List<Post> posts) {
     if (_currentUserProfile == null) return posts;
 
