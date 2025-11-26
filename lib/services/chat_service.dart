@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/chat_models.dart';
+// lib/services/chat_service.dart
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../models/chat_models.dart';
 import '../models/notification_model.dart';
 import 'notification_service.dart';
 
@@ -14,6 +16,7 @@ class ChatService {
 
   static const String chatsCollection = 'chats';
   static const String messagesSubcollection = 'messages';
+
   final NotificationService _notificationService = NotificationService();
 
   /// Watch all chats where the given user is a member.
@@ -36,7 +39,7 @@ class ChatService {
         });
   }
 
-  /// Watch all messages for a chat (we'll use this later).
+  /// Watch all messages for a chat.
   Stream<List<ChatMessage>> watchMessages(String chatId) {
     return _db
         .collection(chatsCollection)
@@ -78,6 +81,9 @@ class ChatService {
           'lastMessageAt': now,
           'lastMessageSenderId': senderId,
           'postId': null,
+          // if your Chat model has swapStatus, this keeps it in sync:
+          'swapStatus': SwapStatus.open.name,
+          'swapMarkedByUserId': null,
         });
       } else {
         txn.update(chatRef, {
@@ -137,9 +143,8 @@ class ChatService {
     try {
       await _notificationService.sendNotification(recipientId, notification);
     } catch (e) {
-      // We don't want the whole send to fail just because notification failed.
-      // In a real app you'd log this somewhere.
-      // debugPrint('Failed to send notification: $e');
+      // Don't blow up the whole send if notification fails.
+      // In a real app you'd log this.
     }
   }
 
@@ -179,26 +184,27 @@ class ChatService {
       'lastMessageAt': now,
       'lastMessageSenderId': currentUserId,
       'postId': postId,
+      // keep in sync with Chat model defaults
+      'swapStatus': SwapStatus.open.name,
+      'swapMarkedByUserId': null,
     });
 
     return newChatRef.id;
   }
 
+  /// Mark the chat as read for this user (used for chat-level unread lists).
   Future<void> markChatAsRead({
     required String chatId,
     required String userId,
   }) async {
     try {
       await _db.collection(chatsCollection).doc(chatId).update({
-        // remove this user from the unread list for this chat
         'unreadFor': FieldValue.arrayRemove([userId]),
       });
     } catch (e) {
       // optional: log for debugging
-      // debugPrint('Failed to mark chat as read: $e');
     }
   }
-  // lib/services/chat_service.dart
 
   /// Watch just the last message in a chat (for unread indicator).
   Stream<ChatMessage?> watchLastMessage(String chatId) {

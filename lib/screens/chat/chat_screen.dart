@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../models/chat_models.dart';
+import '../../models/chat_models.dart' as chat_models; // 👈 use prefix
 import '../../services/chat_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -26,7 +26,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String get _currentUserId {
     final user = FirebaseAuth.instance.currentUser;
     // Fallback to dummy id if somehow not logged in
-    return user?.uid ?? dummyCurrentUserId;
+    return user?.uid ?? chat_models.dummyCurrentUserId; // 👈 updated
   }
 
   @override
@@ -56,11 +56,12 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<ChatMessage>>(
+            child: StreamBuilder<List<chat_models.ChatMessage>>(
+              // 👈 typed
               stream: ChatService.instance.watchMessages(widget.chatId),
               builder: (context, snapshot) {
                 // When messages arrive, mark the latest incoming one as read
-                List<ChatMessage> messages = [];
+                List<chat_models.ChatMessage> messages = [];
 
                 if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                   messages = snapshot.data!;
@@ -83,7 +84,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   return const Center(child: CircularProgressIndicator());
                 } else {
                   // no Firestore messages yet -> fall back to dummy (preview only)
-                  messages = dummyMessagesByChatId[widget.chatId] ?? [];
+                  messages =
+                      chat_models.dummyMessagesByChatId[widget.chatId] ??
+                      []; // 👈 updated
                 }
 
                 if (messages.isEmpty) {
