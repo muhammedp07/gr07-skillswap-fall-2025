@@ -181,8 +181,8 @@ class _FeedScreenState extends State<FeedScreen> {
         } else {
           // Fallback to user's profile skills
           skillsToShow = _selectedFilter == 'learn'
-              ? _currentUserProfile?.skillsLearn ?? []
-              : _currentUserProfile?.skillsTeach ?? [];
+              ? _currentUserProfile?.skillsLearnDisplay ?? []
+              : _currentUserProfile?.skillsTeachDisplay ?? [];
         }
 
         if (skillsToShow.isEmpty) {
@@ -222,11 +222,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   if (_currentUserProfile == null) {
                     isFromProfile = false;
                   } else if (_selectedFilter == 'learn') {
-                    isFromProfile = _currentUserProfile!.skillsLearn.contains(
+                    isFromProfile = _currentUserProfile!.skillsLearnDisplay.contains(
                       skill,
                     );
                   } else {
-                    isFromProfile = _currentUserProfile!.skillsTeach.contains(
+                    isFromProfile = _currentUserProfile!.skillsTeachDisplay.contains(
                       skill,
                     );
                   }
@@ -279,8 +279,8 @@ class _FeedScreenState extends State<FeedScreen> {
     return StreamBuilder<List<Post>>(
       stream: _searchQuery.isEmpty
           ? _postService.getPostsForUser(
-              _currentUserProfile!.skillsTeach,
-              _currentUserProfile!.skillsLearn,
+              _currentUserProfile!.skillsTeachSimple,
+              _currentUserProfile!.skillsLearnSimple,
             )
           : _postService.searchPosts(_searchQuery),
       builder: (context, snapshot) {
@@ -408,8 +408,8 @@ class _FeedScreenState extends State<FeedScreen> {
         // and not already in the user's teach skills
         for (final skill in post.skillsTeach) {
           // Only include if this skill isn't in the user's teach skills
-          if (!_currentUserProfile!.skillsTeach.contains(skill)) {
-            discoveredSkills.add(skill);
+          if (!_currentUserProfile!.skillsTeachSimple.any((s) => s == skill)) {
+            discoveredSkills.add(skill.displaySkill);
           }
         }
       } else if (filterType == 'teach') {
@@ -417,8 +417,8 @@ class _FeedScreenState extends State<FeedScreen> {
         // and not already in the user's learn skills
         for (final skill in post.skillsLearn) {
           // Only include if this skill isn't in the user's learn skills
-          if (!_currentUserProfile!.skillsLearn.contains(skill)) {
-            discoveredSkills.add(skill);
+          if (!_currentUserProfile!.skillsLearnSimple.any((s) => s == skill)) {
+            discoveredSkills.add(skill.displaySkill);
           }
         }
       }
@@ -426,8 +426,8 @@ class _FeedScreenState extends State<FeedScreen> {
 
     // Combine with user's existing skills for the respective filter type
     final userSkills = filterType == 'learn'
-        ? _currentUserProfile?.skillsLearn ?? []
-        : _currentUserProfile?.skillsTeach ?? [];
+        ? _currentUserProfile?.skillsLearnDisplay ?? []
+        : _currentUserProfile?.skillsTeachDisplay ?? [];
 
     return {...userSkills, ...discoveredSkills}.toList()..sort();
   }
@@ -447,7 +447,7 @@ class _FeedScreenState extends State<FeedScreen> {
               (post) =>
                   post.userId != currentUserId && // Exclude own posts
                   post.skillsLearn.any(
-                    (skill) => _currentUserProfile!.skillsTeach.contains(skill),
+                    (skill) => _currentUserProfile!.skillsTeachSimple.any((s) => s == skill),
                   ),
             )
             .toList();
@@ -459,7 +459,7 @@ class _FeedScreenState extends State<FeedScreen> {
               (post) =>
                   post.userId != currentUserId && // Exclude own posts
                   post.skillsTeach.any(
-                    (skill) => _currentUserProfile!.skillsLearn.contains(skill),
+                    (skill) => _currentUserProfile!.skillsLearnSimple.any((s) => s == skill),
                   ),
             )
             .toList();
@@ -471,14 +471,16 @@ class _FeedScreenState extends State<FeedScreen> {
 
     // Apply skill-specific filters
     if (_selectedLearnFilterSkill != null) {
+      // _selectedLearnFilterSkill is a display string, need to match against displaySkill
       filteredPosts = filteredPosts
-          .where((post) => post.skillsTeach.contains(_selectedLearnFilterSkill))
+          .where((post) => post.skillsTeach.any((s) => s.displaySkill == _selectedLearnFilterSkill))
           .toList();
     }
 
     if (_selectedTeachFilterSkill != null) {
+      // _selectedTeachFilterSkill is a display string, need to match against displaySkill
       filteredPosts = filteredPosts
-          .where((post) => post.skillsLearn.contains(_selectedTeachFilterSkill))
+          .where((post) => post.skillsLearn.any((s) => s.displaySkill == _selectedTeachFilterSkill))
           .toList();
     }
 
@@ -577,7 +579,7 @@ class _FeedScreenState extends State<FeedScreen> {
                               .map(
                                 (skill) => Chip(
                                   label: Text(
-                                    skill,
+                                    skill.displaySkill,
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.white,
@@ -613,7 +615,7 @@ class _FeedScreenState extends State<FeedScreen> {
                               .map(
                                 (skill) => Chip(
                                   label: Text(
-                                    skill,
+                                    skill.displaySkill,
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.white,
@@ -701,12 +703,12 @@ class _FeedScreenState extends State<FeedScreen> {
 
     int score = 0;
     // User can teach what the post wants to learn
-    for (String skill in post.skillsLearn) {
-      if (_currentUserProfile!.skillsTeach.contains(skill)) score++;
+    for (final skill in post.skillsLearn) {
+      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill)) score++;
     }
     // User wants to learn what the post can teach
-    for (String skill in post.skillsTeach) {
-      if (_currentUserProfile!.skillsLearn.contains(skill)) score++;
+    for (final skill in post.skillsTeach) {
+      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill)) score++;
     }
     return score;
   }
