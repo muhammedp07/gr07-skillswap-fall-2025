@@ -206,6 +206,43 @@ class ChatService {
     }
   }
 
+  /// Update the SkillSwap status for a chat (open/completed, etc).
+  Future<void> setSwapStatus({
+    required String chatId,
+    required SwapStatus status,
+    String? markedByUserId,
+  }) async {
+    try {
+      final data = <String, dynamic>{'swapStatus': status.name};
+
+      // Optional: track which user marked it as done
+      if (markedByUserId != null) {
+        data['swapMarkedByUserId'] = markedByUserId;
+      }
+
+      await _db.collection(chatsCollection).doc(chatId).update(data);
+    } catch (e) {
+      // optional: log for debugging
+    }
+  }
+
+  /// Update the swap status for a chat (e.g. mark as completed).
+  Future<void> updateSwapStatus({
+    required String chatId,
+    required SwapStatus status,
+    required String markedByUserId,
+  }) async {
+    try {
+      await _db.collection(chatsCollection).doc(chatId).update({
+        'swapStatus': status.name,
+        'swapMarkedByUserId': markedByUserId,
+      });
+    } catch (e) {
+      // optional: log error
+      // debugPrint('Failed to update swap status: $e');
+    }
+  }
+
   /// Watch just the last message in a chat (for unread indicator).
   Stream<ChatMessage?> watchLastMessage(String chatId) {
     return _db
