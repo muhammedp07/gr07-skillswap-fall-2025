@@ -3,8 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../models/chat_models.dart' as chat_models;
+import '../../models/chat_models.dart'
+    as chat_models; // 👈 Chat + SwapStatus + dummy data
 import '../../services/chat_service.dart';
+import '../../services/review_service.dart'; // 👈 NEW
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -49,21 +51,212 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _markSwapCompleted() async {
-    await ChatService.instance.updateSwapStatus(
-      chatId: widget.chatId,
-      status: chat_models.SwapStatus.completed,
-      markedByUserId: _currentUserId,
+  /// Open bottom sheet to rate + confirm swap completion.
+  void _onMarkDonePressed(chat_models.Chat chat) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF151936),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        int selectedRating = 5;
+        final TextEditingController commentController = TextEditingController();
+        bool isSaving = false;
+
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            Future<void> handleSubmit() async {
+              if (isSaving) return;
+
+              setModalState(() => isSaving = true);
+
+              try {
+                // 1) Save review
+                await ReviewService.instance.submitReview(
+                  chatId: widget.chatId,
+                  fromUserId: _currentUserId,
+                  toUserId: widget.otherUserId,
+                  rating: selectedRating,
+                  comment: commentController.text,
+                );
+
+                // 2) Mark swap as completed on the chat
+                await ChatService.instance.updateSwapStatus(
+                  chatId: widget.chatId,
+                  status: chat_models.SwapStatus.completed,
+                  markedByUserId: _currentUserId,
+                );
+
+                if (!mounted) return;
+
+                Navigator.of(ctx).pop(); // close bottom sheet
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Swap marked as done and review submitted.'),
+                  ),
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to submit review: $e')),
+                  );
+                }
+              } finally {
+                setModalState(() => isSaving = false);
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const Text(
+                    'Mark swap as done',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "How was your experience with this swap?",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ⭐ Rating row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      final value = index + 1;
+                      final isSelected = value <= selectedRating;
+                      return IconButton(
+                        onPressed: () {
+                          setModalState(() {
+                            selectedRating = value;
+                          });
+                        },
+                        icon: Icon(
+                          isSelected ? Icons.star : Icons.star_border,
+                          color: isSelected ? Colors.amber : Colors.grey,
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Optional comment
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Leave a short comment (optional)',
+                      hintStyle: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 14,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF11152B),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.white24,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: isSaving
+                              ? null
+                              : () => Navigator.of(ctx).pop(),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isSaving ? null : handleSubmit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: isSaving
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Submit & mark done',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // 👇 Listen to the chat doc so we know the current swapStatus
+    // 🧠 Outer stream: watch the chat itself for swapStatus changes
     return StreamBuilder<chat_models.Chat?>(
       stream: ChatService.instance.watchChat(widget.chatId),
-      builder: (context, chatSnapshot) {
-        final chat = chatSnapshot.data;
+      builder: (context, chatSnap) {
+        final chat = chatSnap.data;
         final isCompleted =
             chat?.swapStatus == chat_models.SwapStatus.completed;
 
@@ -71,39 +264,47 @@ class _ChatScreenState extends State<ChatScreen> {
           appBar: AppBar(
             title: const Text('Chat'),
             actions: [
-              if (isCompleted)
+              if (chat != null)
                 Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.greenAccent),
-                      ),
-                      child: const Text(
-                        'Swap completed',
-                        style: TextStyle(
-                          color: Colors.greenAccent,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 10.0,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isCompleted ? Colors.green : Colors.orange,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isCompleted
+                              ? Icons.check_circle
+                              : Icons.hourglass_top,
+                          size: 16,
+                          color: Colors.white,
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isCompleted ? 'Completed' : 'In progress',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                )
-              else
+                ),
+              if (chat != null && !isCompleted)
                 TextButton.icon(
-                  onPressed: _markSwapCompleted,
-                  icon: const Icon(
-                    Icons.check_circle_outline,
-                    size: 18,
-                    color: Colors.white,
-                  ),
+                  onPressed: () => _onMarkDonePressed(chat),
+                  icon: const Icon(Icons.check, color: Colors.white, size: 18),
                   label: const Text(
                     'Mark done',
                     style: TextStyle(color: Colors.white),
