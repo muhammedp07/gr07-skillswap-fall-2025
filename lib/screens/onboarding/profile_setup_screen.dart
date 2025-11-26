@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_profile.dart';
+import '../../models/skill_entry.dart';
 import '../../services/user_service.dart';
+import '../../services/skill_service.dart';
+import '../../widgets/skill_selection_widget.dart';
 import '../home/home_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -15,26 +18,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final nameController = TextEditingController();
   final majorController = TextEditingController();
   final bioController = TextEditingController();
+  final SkillService _skillService = SkillService();
 
-  // Predefined skills (to avoid duplicates like python/Python/Python3)
-  final List<String> allSkills = [
-    "Python",
-    "Java",
-    "C++",
-    "Web Development",
-    "UI/UX",
-    "Flutter",
-    "Cooking",
-    "Photography",
-    "Painting",
-    "Music",
-    "Editing",
-    "Data Analysis",
-    "Public Speaking",
-  ];
+  List<SkillEntry> skillsTeach = [];
+  List<SkillEntry> skillsLearn = [];
 
-  List<String> skillsTeach = [];
-  List<String> skillsLearn = [];
+  @override
+  void initState() {
+    super.initState();
+    _initializeSkills();
+  }
+
+  Future<void> _initializeSkills() async {
+    // Initialize default skills in Firebase
+    await _skillService.initializeDefaultSkills();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,43 +75,29 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             _buildBioField(),
 
             const SizedBox(height: 24),
-            const Text(
-              "Skills you can TEACH",
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            _buildSkillChips(
-              selectedList: skillsTeach,
-              onSelect: (skill) {
+            SkillSelectionWidget(
+              selectedSkills: skillsTeach,
+              onSkillsChanged: (skills) {
                 setState(() {
-                  if (skillsTeach.contains(skill)) {
-                    skillsTeach.remove(skill);
-                  } else {
-                    skillsTeach.add(skill);
-                  }
+                  skillsTeach = skills;
                 });
               },
-              isTeachList: true,
+              title: "Skills you can TEACH",
+              chipColor: Colors.green.withOpacity(0.3),
+              excludedSkills: skillsLearn,
             ),
 
             const SizedBox(height: 28),
-            const Text(
-              "Skills you want to LEARN",
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            _buildSkillChips(
-              selectedList: skillsLearn,
-              onSelect: (skill) {
+            SkillSelectionWidget(
+              selectedSkills: skillsLearn,
+              onSkillsChanged: (skills) {
                 setState(() {
-                  if (skillsLearn.contains(skill)) {
-                    skillsLearn.remove(skill);
-                  } else {
-                    skillsLearn.add(skill);
-                  }
+                  skillsLearn = skills;
                 });
               },
-              isTeachList: false,
+              title: "Skills you want to LEARN",
+              chipColor: Colors.orange.withOpacity(0.3),
+              excludedSkills: skillsTeach,
             ),
 
             const SizedBox(height: 40),
@@ -152,68 +136,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         counterStyle: const TextStyle(color: Colors.white54),
       ),
-    );
-  }
-
-  Widget _buildSkillChips({
-    required List<String> selectedList,
-    required Function(String) onSelect,
-    required bool isTeachList,
-  }) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: allSkills.map((skill) {
-        final bool isSelected = selectedList.contains(skill);
-
-        // Disable logic:
-        // If this is Teach list → disable chips already chosen in Learn
-        final bool isDisabled = isTeachList
-            ? skillsLearn.contains(skill)
-            : skillsTeach.contains(skill);
-
-        return GestureDetector(
-          onTap: isDisabled
-              ? null
-              : () => setState(() {
-                  if (isSelected) {
-                    selectedList.remove(skill);
-                  } else {
-                    selectedList.add(skill);
-                  }
-                }),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-            decoration: BoxDecoration(
-              color: isDisabled
-                  ? Colors.grey.shade700
-                  : isSelected
-                  ? Colors.blue
-                  : const Color(0xFF1A1D36),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected
-                    ? Colors.blueAccent
-                    : isDisabled
-                    ? Colors.grey.shade600
-                    : Colors.white30,
-              ),
-            ),
-            child: Text(
-              skill,
-              style: TextStyle(
-                color: isDisabled
-                    ? Colors.white30
-                    : isSelected
-                    ? Colors.white
-                    : Colors.white70,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 
