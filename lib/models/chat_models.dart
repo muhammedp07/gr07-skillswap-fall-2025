@@ -1,6 +1,11 @@
 // lib/models/chat_models.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Status of a SkillSwap inside a chat
+enum SwapStatus {
+  open, // default: swap still ongoing / not confirmed done
+  completed, // swap marked as done
+}
 
 /// Simple model for a chat conversation.
 class Chat {
@@ -11,6 +16,7 @@ class Chat {
   final String lastMessageSenderId;
   final List<String> unreadFor;
   final String? postId; // optional: SkillSwap post this chat is about
+  final SwapStatus swapStatus;
 
   Chat({
     required this.id,
@@ -20,6 +26,7 @@ class Chat {
     required this.lastMessageSenderId,
     this.unreadFor = const [],
     this.postId,
+    this.swapStatus = SwapStatus.open,
   });
 
   factory Chat.fromMap(String id, Map<String, dynamic> map) {
@@ -34,6 +41,12 @@ class Chat {
       lastAt = DateTime.now();
     }
 
+    final String rawStatus = (map['swapStatus'] ?? 'open') as String;
+    final SwapStatus status = SwapStatus.values.firstWhere(
+      (s) => s.name == rawStatus,
+      orElse: () => SwapStatus.open,
+    );
+
     return Chat(
       id: id,
       members: List<String>.from(map['members'] ?? const []),
@@ -41,6 +54,7 @@ class Chat {
       lastMessageAt: lastAt,
       lastMessageSenderId: map['lastMessageSenderId'] ?? '',
       postId: map['postId'],
+      swapStatus: status,
     );
   }
 
@@ -51,6 +65,7 @@ class Chat {
       'lastMessageAt': Timestamp.fromDate(lastMessageAt),
       'lastMessageSenderId': lastMessageSenderId,
       'postId': postId,
+      'swapStatus': swapStatus.name,
     };
   }
 }
@@ -122,6 +137,7 @@ final List<Chat> dummyChats = [
     lastMessageAt: DateTime.now().subtract(const Duration(minutes: 2)),
     lastMessageSenderId: 'user_jane',
     postId: 'post_jane_flutter',
+    swapStatus: SwapStatus.open,
   ),
   Chat(
     id: 'chat_john',
@@ -130,6 +146,7 @@ final List<Chat> dummyChats = [
     lastMessageAt: DateTime.now().subtract(const Duration(hours: 1)),
     lastMessageSenderId: 'user_me',
     postId: 'post_john_guitar',
+    swapStatus: SwapStatus.open,
   ),
   Chat(
     id: 'chat_emily',
@@ -138,10 +155,11 @@ final List<Chat> dummyChats = [
     lastMessageAt: DateTime.now().subtract(const Duration(days: 1)),
     lastMessageSenderId: 'user_emily',
     postId: 'post_emily_spanish',
+    swapStatus: SwapStatus.completed,
   ),
 ];
 
-/// Dummy messages grouped by chat id.
+/// Dummy messages grouped by chat id (used only as preview / fallback).
 final Map<String, List<ChatMessage>> dummyMessagesByChatId = {
   'chat_jane': [
     ChatMessage(

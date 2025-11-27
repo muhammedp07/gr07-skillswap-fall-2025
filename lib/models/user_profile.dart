@@ -9,6 +9,12 @@ class UserProfile {
   final String? profileImageUrl;
   final String? bio;
 
+  /// Average rating given by other users (0.0–5.0).
+  final double avgRating;
+
+  /// How many reviews were submitted for this user.
+  final int reviewsCount;
+
   UserProfile({
     required this.uid,
     required this.name,
@@ -17,18 +23,18 @@ class UserProfile {
     required this.skillsLearn,
     this.profileImageUrl,
     this.bio,
+    this.avgRating = 0.0,
+    this.reviewsCount = 0,
   });
 
   // Helper getters for display
-  List<String> get skillsTeachDisplay => 
+  List<String> get skillsTeachDisplay =>
       skillsTeach.map((skill) => skill.displaySkill).toList();
-  
-  List<String> get skillsLearnDisplay => 
+
+  List<String> get skillsLearnDisplay =>
       skillsLearn.map((skill) => skill.displaySkill).toList();
-  
-  // Helper getters for skill entries (normalized)
+
   List<SkillEntry> get skillsTeachSimple => skillsTeach;
-  
   List<SkillEntry> get skillsLearnSimple => skillsLearn;
 
   Map<String, dynamic> toMap() {
@@ -40,6 +46,10 @@ class UserProfile {
       'skillsLearn': skillsLearn.map((skill) => skill.toMap()).toList(),
       'profileImageUrl': profileImageUrl,
       'bio': bio,
+
+      // ⭐ NEW – persist rating summary
+      'avgRating': avgRating,
+      'reviewsCount': reviewsCount,
     };
   }
 
@@ -56,11 +66,9 @@ class UserProfile {
               // Legacy format - convert to SkillEntry
               return SkillEntry.fromLegacyString(item);
             }
-            // Fallback for unexpected types
             return SkillEntry.fromLegacyString('Other');
           } catch (e) {
             print('Error parsing skill item: $item, error: $e');
-            // If parsing fails, create a safe fallback
             return SkillEntry.fromLegacyString('Other');
           }
         }).toList();
@@ -69,13 +77,17 @@ class UserProfile {
     }
 
     return UserProfile(
-      uid: map['uid'],
-      name: map['name'],
-      major: map['major'],
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      major: map['major'] ?? '',
       skillsTeach: parseSkills(map['skillsTeach']),
       skillsLearn: parseSkills(map['skillsLearn']),
       profileImageUrl: map['profileImageUrl'],
       bio: map['bio'],
+
+      // ⭐ NEW – read rating summary (with safe defaults)
+      avgRating: (map['avgRating'] as num?)?.toDouble() ?? 0.0,
+      reviewsCount: (map['reviewsCount'] as num?)?.toInt() ?? 0,
     );
   }
 }
