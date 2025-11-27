@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/user_service.dart';
 import '../home/home_screen.dart';
 import '../onboarding/profile_setup_screen.dart';
+import '../auth/reset_password_screen.dart';
 
 enum AuthMode { signIn, signUp }
 
@@ -68,6 +69,25 @@ class _LoginScreenState extends State<LoginScreen> {
               obscure: true,
               icon: Icons.lock_outline,
             ),
+
+            if (!isSignUp)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ResetPasswordScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "Forgot password?",
+                    style: TextStyle(color: Colors.blueAccent),
+                  ),
+                ),
+              ),
 
             if (isSignUp) ...[
               const SizedBox(height: 16),
@@ -238,9 +258,8 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => hasProfile 
-            ? const HomeScreen() 
-            : const ProfileSetupScreen(),
+          builder: (context) =>
+              hasProfile ? const HomeScreen() : const ProfileSetupScreen(),
         ),
         (route) => false,
       );
@@ -300,9 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // After successful sign up, navigate to profile setup
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const ProfileSetupScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const ProfileSetupScreen()),
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
