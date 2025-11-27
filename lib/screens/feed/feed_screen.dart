@@ -35,6 +35,10 @@ class _FeedScreenState extends State<FeedScreen> {
   String? _selectedTeachFilterSkill;
   String? _selectedLearnFilterSkill;
 
+  // New state for feed preferences
+  bool _showOnlyMatches = false;
+  double _minRelevanceThreshold = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -70,6 +74,83 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  // New method to calculate comprehensive match score
+  double _calculateComprehensiveMatchScore(Post post) {
+    if (_currentUserProfile == null) return 0.0;
+
+    double score = 0.0;
+
+    // Perfect matches (user can teach what post wants to learn)
+    for (final skill in post.skillsLearn) {
+      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill)) {
+        score += 2.0; // High weight for perfect matches
+      }
+    }
+
+    // Perfect matches (user wants to learn what post can teach)
+    for (final skill in post.skillsTeach) {
+      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill)) {
+        score += 2.0; // High weight for perfect matches
+      }
+    }
+
+    // Category-based matches (lower weight)
+    final userTeachCategories = _currentUserProfile!.skillsTeach
+        .map((s) => s.category)
+        .toSet();
+    final userLearnCategories = _currentUserProfile!.skillsLearn
+        .map((s) => s.category)
+        .toSet();
+
+    for (final skill in post.skillsLearn) {
+      if (userTeachCategories.contains(skill.category)) {
+        score += 0.5; // Same category but different skill
+      }
+    }
+
+    for (final skill in post.skillsTeach) {
+      if (userLearnCategories.contains(skill.category)) {
+        score += 0.5; // Same category but different skill
+      }
+    }
+
+    return score;
+  }
+
+  // New method to sort posts by relevance
+  List<Post> _sortPostsByRelevance(List<Post> posts) {
+    if (_currentUserProfile == null) return posts;
+
+    final scoredPosts = posts.map((post) {
+      return {
+        'post': post,
+        'score': _calculateComprehensiveMatchScore(post),
+        'isPerfectMatch': _calculateMatchScore(post) > 0,
+      };
+    }).toList();
+
+    // Sort by: perfect matches first, then by score, then by timestamp
+    scoredPosts.sort((a, b) {
+      final aPerfect = a['isPerfectMatch'] as bool;
+      final bPerfect = b['isPerfectMatch'] as bool;
+
+      if (aPerfect && !bPerfect) return -1;
+      if (!aPerfect && bPerfect) return 1;
+
+      final aScore = a['score'] as double;
+      final bScore = b['score'] as double;
+
+      if (aScore != bScore) return bScore.compareTo(aScore);
+
+      // Fall back to recent posts
+      final aPost = a['post'] as Post;
+      final bPost = b['post'] as Post;
+      return bPost.createdAt.compareTo(aPost.createdAt);
+    });
+
+    return scoredPosts.map((item) => item['post'] as Post).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,6 +162,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
           // Filter Section
           _buildFilterSection(),
+
+          // Smart Feed Controls
+          _buildSmartFeedControls(),
 
           // Posts List
           Expanded(child: _buildPostsList()),
@@ -139,6 +223,33 @@ class _FeedScreenState extends State<FeedScreen> {
         if (_selectedFilter == 'learn' || _selectedFilter == 'teach')
           _buildSkillFilterChips(),
       ],
+    );
+  }
+
+  Widget _buildSmartFeedControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              _showOnlyMatches
+                  ? "Showing relevant matches only"
+                  : "Smart feed: Best matches first",
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+          Switch(
+            value: _showOnlyMatches,
+            onChanged: (value) {
+              setState(() {
+                _showOnlyMatches = value;
+              });
+            },
+            activeColor: Colors.blue,
+          ),
+        ],
+      ),
     );
   }
 
@@ -222,13 +333,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   if (_currentUserProfile == null) {
                     isFromProfile = false;
                   } else if (_selectedFilter == 'learn') {
-                    isFromProfile = _currentUserProfile!.skillsLearnDisplay.contains(
-                      skill,
-                    );
+                    isFromProfile = _currentUserProfile!.skillsLearnDisplay
+                        .contains(skill);
                   } else {
-                    isFromProfile = _currentUserProfile!.skillsTeachDisplay.contains(
-                      skill,
-                    );
+                    isFromProfile = _currentUserProfile!.skillsTeachDisplay
+                        .contains(skill);
                   }
 
                   return Tooltip(
@@ -298,9 +407,11 @@ class _FeedScreenState extends State<FeedScreen> {
         }
 
         final posts = snapshot.data ?? [];
-        final filteredPosts = _applyAdvancedFilter(posts);
+        final filteredPosts = _applySmartFilter(posts);
 
-        if (filteredPosts.isEmpty) {
+        final sortedPosts = _sortPostsByRelevance(filteredPosts);
+
+        if (sortedPosts.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32.0),
@@ -385,9 +496,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: filteredPosts.length,
+          itemCount: sortedPosts.length,
           itemBuilder: (context, index) {
-            return _buildPostCard(filteredPosts[index]);
+            return _buildPostCard(sortedPosts[index]);
           },
         );
       },
@@ -441,25 +552,27 @@ class _FeedScreenState extends State<FeedScreen> {
     // Apply main filter
     switch (_selectedFilter) {
       case 'teach':
-        // Show posts where users want to learn skills that current user can teach
         filteredPosts = posts
             .where(
               (post) =>
                   post.userId != currentUserId && // Exclude own posts
                   post.skillsLearn.any(
-                    (skill) => _currentUserProfile!.skillsTeachSimple.any((s) => s == skill),
+                    (skill) => _currentUserProfile!.skillsTeachSimple.any(
+                      (s) => s == skill,
+                    ),
                   ),
             )
             .toList();
         break;
       case 'learn':
-        // Show posts where users can teach skills that current user wants to learn
         filteredPosts = posts
             .where(
               (post) =>
                   post.userId != currentUserId && // Exclude own posts
                   post.skillsTeach.any(
-                    (skill) => _currentUserProfile!.skillsLearnSimple.any((s) => s == skill),
+                    (skill) => _currentUserProfile!.skillsLearnSimple.any(
+                      (s) => s == skill,
+                    ),
                   ),
             )
             .toList();
@@ -471,17 +584,39 @@ class _FeedScreenState extends State<FeedScreen> {
 
     // Apply skill-specific filters
     if (_selectedLearnFilterSkill != null) {
-      // _selectedLearnFilterSkill is a display string, need to match against displaySkill
       filteredPosts = filteredPosts
-          .where((post) => post.skillsTeach.any((s) => s.displaySkill == _selectedLearnFilterSkill))
+          .where(
+            (post) => post.skillsTeach.any(
+              (s) => s.displaySkill == _selectedLearnFilterSkill,
+            ),
+          )
           .toList();
     }
 
     if (_selectedTeachFilterSkill != null) {
-      // _selectedTeachFilterSkill is a display string, need to match against displaySkill
       filteredPosts = filteredPosts
-          .where((post) => post.skillsLearn.any((s) => s.displaySkill == _selectedTeachFilterSkill))
+          .where(
+            (post) => post.skillsLearn.any(
+              (s) => s.displaySkill == _selectedTeachFilterSkill,
+            ),
+          )
           .toList();
+    }
+
+    return filteredPosts;
+  }
+
+  List<Post> _applySmartFilter(List<Post> posts) {
+    if (_currentUserProfile == null) return posts;
+
+    List<Post> filteredPosts = _applyAdvancedFilter(posts);
+
+    // Apply relevance threshold if enabled
+    if (_showOnlyMatches) {
+      filteredPosts = filteredPosts.where((post) {
+        final score = _calculateComprehensiveMatchScore(post);
+        return score >= _minRelevanceThreshold;
+      }).toList();
     }
 
     return filteredPosts;
@@ -491,6 +626,22 @@ class _FeedScreenState extends State<FeedScreen> {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isOwnPost = currentUserId != null && post.userId == currentUserId;
     final matchScore = _calculateMatchScore(post);
+    final comprehensiveScore = _calculateComprehensiveMatchScore(post);
+
+    // Determine relevance badge
+    String? relevanceBadge;
+    Color? badgeColor;
+
+    if (matchScore > 0) {
+      relevanceBadge = 'Perfect Match!';
+      badgeColor = Colors.green;
+    } else if (comprehensiveScore >= 1.0) {
+      relevanceBadge = 'Good Match';
+      badgeColor = Colors.blue;
+    } else if (comprehensiveScore > 0) {
+      relevanceBadge = 'Related';
+      badgeColor = Colors.orange;
+    }
 
     return InkWell(
       onTap: () {
@@ -506,7 +657,7 @@ class _FeedScreenState extends State<FeedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Info
+              // User Info with relevance badge
               Row(
                 children: [
                   CircleAvatar(
@@ -535,7 +686,26 @@ class _FeedScreenState extends State<FeedScreen> {
                       ],
                     ),
                   ),
-                  if (matchScore > 0)
+                  if (relevanceBadge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        relevanceBadge,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  if (matchScore > 0 && relevanceBadge == null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -704,11 +874,13 @@ class _FeedScreenState extends State<FeedScreen> {
     int score = 0;
     // User can teach what the post wants to learn
     for (final skill in post.skillsLearn) {
-      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill)) score++;
+      if (_currentUserProfile!.skillsTeachSimple.any((s) => s == skill))
+        score++;
     }
     // User wants to learn what the post can teach
     for (final skill in post.skillsTeach) {
-      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill)) score++;
+      if (_currentUserProfile!.skillsLearnSimple.any((s) => s == skill))
+        score++;
     }
     return score;
   }
