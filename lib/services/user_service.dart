@@ -40,14 +40,28 @@ class UserService {
 
   // Search users by name or major
   Stream<List<UserProfile>> searchUsers(String query) {
-    return _db.collection('users')
+    return _db
+        .collection('users')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => UserProfile.fromMap(doc.data()))
-            .where((user) =>
-                user.name.toLowerCase().contains(query.toLowerCase()) ||
-                user.major.toLowerCase().contains(query.toLowerCase()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => UserProfile.fromMap(doc.data()))
+              .where(
+                (user) =>
+                    user.name.toLowerCase().contains(query.toLowerCase()) ||
+                    user.major.toLowerCase().contains(query.toLowerCase()),
+              )
+              .toList(),
+        );
+  }
+
+  Stream<UserProfile?> getUserProfileStream(String uid) {
+    return _db.collection('users').doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return UserProfile.fromMap(doc.data()!);
+      }
+      return null;
+    });
   }
 
   // Update specific skills for a user
@@ -57,15 +71,15 @@ class UserService {
     List<String>? skillsLearn,
   }) async {
     final updateData = <String, dynamic>{};
-    
+
     if (skillsTeach != null) {
       updateData['skillsTeach'] = skillsTeach;
     }
-    
+
     if (skillsLearn != null) {
       updateData['skillsLearn'] = skillsLearn;
     }
-    
+
     await _db.collection('users').doc(uid).update(updateData);
   }
 }
