@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/screens/auth/welcome_screen.dart';
-import 'package:gr07_skillswap/screens/home/home_screen.dart'; 
+import 'package:gr07_skillswap/screens/home/home_screen.dart';
 import 'package:gr07_skillswap/services/user_service.dart';
 import 'firebase_options.dart';
 import 'screens/onboarding/profile_setup_screen.dart';
@@ -71,9 +71,9 @@ class _AuthGateState extends State<AuthGate> {
             }
 
             final profileExists = profileSnapshot.data ?? false;
-            
+
             return profileExists
-                ? const HomeScreen() 
+                ? const HomeScreen()
                 : const ProfileSetupScreen();
           },
         );
@@ -114,11 +114,7 @@ class _AuthGateState extends State<AuthGate> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 64,
-              ),
+              const Icon(Icons.error_outline, color: Colors.red, size: 64),
               const SizedBox(height: 20),
               const Text(
                 'Something went wrong',
