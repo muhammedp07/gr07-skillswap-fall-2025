@@ -51,7 +51,7 @@ class PostDetailScreen extends StatelessWidget {
 
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => ChatScreen(chatId: chatId, otherUserId: post.userId),
+          builder: (_) => ChatScreen(chatId: chatId, otherUserId: post.userId, otherUserName: post.userName),
         ),
       );
     } catch (e) {

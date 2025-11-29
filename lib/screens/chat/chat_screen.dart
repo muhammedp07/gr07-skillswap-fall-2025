@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gr07_skillswap/screens/swap/schedule_swap_screen.dart';
+import 'package:gr07_skillswap/screens/swap/scheduled_swaps_screen.dart';
 
 import '../../models/chat_models.dart'
     as chat_models; // 👈 Chat + SwapStatus + dummy data
@@ -11,11 +13,13 @@ import '../../services/review_service.dart'; // 👈 NEW
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String otherUserId;
+  final String otherUserName;
 
   const ChatScreen({
     super.key,
     required this.chatId,
     required this.otherUserId,
+    required this.otherUserName,
   });
 
   @override
@@ -264,6 +268,38 @@ class _ChatScreenState extends State<ChatScreen> {
           appBar: AppBar(
             title: const Text('Chat'),
             actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'schedule',
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Schedule Swap'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'view_schedules',
+                    child: Row(
+                      children: [
+                        Icon(Icons.list, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text('View Scheduled Swaps'),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'schedule') {
+                    _navigateToScheduleSwap();
+                  } else if (value == 'view_schedules') {
+                    _navigateToScheduledSwaps();
+                  }
+                },
+              ),
               if (chat != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -435,6 +471,33 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _navigateToScheduleSwap() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ScheduleSwapScreen(
+          postId: 'from_chat_${widget.chatId}',
+          chatId: widget.chatId,
+          otherUserId: widget.otherUserId,
+          otherUserName: widget.otherUserName, // Use the actual name
+        ),
+      ),
+    );
+  }
+
+  void _navigateToScheduledSwaps() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ScheduledSwapsScreen(
+          chatId: widget.chatId,
+          otherUserId: widget.otherUserId,
+          otherUserName: widget.otherUserName, // Use the actual name
+        ),
+      ),
     );
   }
 }
