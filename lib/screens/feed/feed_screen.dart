@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gr07_skillswap/services/bookmark_service.dart';
 import '../../models/post.dart';
 import '../../models/user_profile.dart';
 import '../../services/post_service.dart';
@@ -26,6 +27,7 @@ class _FeedScreenState extends State<FeedScreen> {
   final PostService _postService = PostService();
   final UserService _userService = UserService();
   final ChatService _chatService = ChatService.instance;
+  final BookmarkService _bookmarkService = BookmarkService();
 
   String _searchQuery = '';
   String _selectedFilter = 'all';
@@ -480,7 +482,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Widget _buildPostCard(Post post) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final isOwnPost = currentUserId != null && post.userId == currentUserId;
+    if (currentUserId == null) return Container();
+
+    final isOwnPost = post.userId == currentUserId;
     final matchScore = _calculateMatchScore(post);
     final comprehensiveScore = _calculateComprehensiveMatchScore(post);
 
@@ -557,6 +561,23 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                   if (isNewMatch)
                     const Icon(Icons.fiber_new, color: Colors.green, size: 20),
+
+                  StreamBuilder<bool>(
+                    stream: _bookmarkService.isBookmarkedStream(currentUserId, post.id),
+                    builder: (context, snapshot) {
+                      final isBookmarked = snapshot.data ?? false;
+                      return IconButton(
+                        icon: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked ? Colors.blue : Colors.white70,
+                        ),
+                        onPressed: () {
+                          _bookmarkService.toggleBookmark(currentUserId, post.id);
+                        },
+                      );
+                    },
+                  ),
+                  
                   if (relevanceBadge != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
