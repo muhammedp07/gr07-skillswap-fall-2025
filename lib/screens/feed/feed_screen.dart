@@ -855,6 +855,7 @@ class _FeedScreenState extends State<FeedScreen> {
           builder: (_) => ChatScreen(
             chatId: chatId,
             otherUserId: post.userId, // owner of the post
+            otherUserName: post.userName,
           ),
         ),
       );

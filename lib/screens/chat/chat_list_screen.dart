@@ -250,8 +250,11 @@ class ChatListScreen extends StatelessWidget {
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                ChatScreen(chatId: chat.id, otherUserId: otherUserId),
+            builder: (_) => ChatScreen(
+              chatId: chat.id,
+              otherUserId: otherUserId,
+              otherUserName: displayName, // Pass the actual display name
+            ),
           ),
         );
       },
