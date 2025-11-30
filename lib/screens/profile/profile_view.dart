@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gr07_skillswap/screens/feed/saved_posts_screen.dart';
 import '../../controllers/profile_controller.dart';
 import '../../models/user_profile.dart';
 import 'edit_profile_screen.dart';
@@ -13,7 +14,7 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   // Initialize the controller
   final ProfileController _controller = ProfileController();
-  
+
   // State variables
   UserProfile? _profile;
   bool _isLoading = true;
@@ -73,15 +74,19 @@ class _ProfileViewState extends State<ProfileView> {
           // Name
           Text(
             _profile!.name,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-          
+
           // Major
           Text(
             _profile!.major,
             style: const TextStyle(fontSize: 16, color: Colors.white70),
           ),
-          
+
           // Bio
           if (_profile!.bio != null && _profile!.bio!.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -94,7 +99,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
           ],
-          
+
           const SizedBox(height: 24),
 
           // Edit Profile Button
@@ -105,7 +110,8 @@ class _ProfileViewState extends State<ProfileView> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditProfileScreen(currentProfile: _profile!),
+                    builder: (context) =>
+                        EditProfileScreen(currentProfile: _profile!),
                   ),
                 );
                 // Reload profile if changes were saved
@@ -122,12 +128,18 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               child: const Text(
                 "Edit Profile",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 32),
-
+          
+          _buildSavedPostsSection(),
+          const SizedBox(height: 32),
           // Skills I Can Teach Section
           _buildSkillSection(
             title: "Skills I Teach",
@@ -144,6 +156,51 @@ class _ProfileViewState extends State<ProfileView> {
             skills: _profile!.skillsLearnDisplay,
             color: Colors.grey.withOpacity(0.2),
             textColor: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavedPostsSection() {
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Saved Posts",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1D36),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.bookmark, color: Colors.blue),
+              title: const Text(
+                'View Saved Posts',
+                style: TextStyle(color: Colors.white),
+              ),
+              trailing: const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.white70,
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SavedPostsScreen()),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -164,11 +221,21 @@ class _ProfileViewState extends State<ProfileView> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 12),
           skills.isEmpty
-              ? const Text("No skills listed.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.white54))
+              ? const Text(
+                  "No skills listed.",
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: Colors.white54,
+                  ),
+                )
               : Align(
                   alignment: Alignment.centerLeft,
                   child: Wrap(
@@ -176,20 +243,26 @@ class _ProfileViewState extends State<ProfileView> {
                     runSpacing: 8,
                     alignment: WrapAlignment.start,
                     children: skills.map((skill) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: textColor),
-                    ),
-                    child: Text(
-                      skill,
-                      style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
-                    ),
-                  );
-                }).toList(),
-              ),
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: textColor),
+                        ),
+                        child: Text(
+                          skill,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
         ],
       ),
