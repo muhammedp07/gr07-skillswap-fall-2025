@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../services/push_notification_service.dart';
 
 class NotificationController {
   final NotificationService _service = NotificationService();
+  final PushNotificationService _pushService = PushNotificationService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? get currentUserId => _auth.currentUser?.uid;
@@ -18,6 +20,16 @@ class NotificationController {
     final uid = currentUserId;
     if (uid == null) return Stream.value(0);
     return _service.getUnreadCount(uid);
+  }
+
+  /// Initialize push notifications (call after login)
+  Future<void> initializePushNotifications() async {
+    await _pushService.initialize();
+  }
+
+  /// Clear FCM token (call on logout)
+  Future<void> clearPushNotifications() async {
+    await _pushService.clearFcmToken();
   }
 
   Future<void> markAsRead(String notificationId) async {
