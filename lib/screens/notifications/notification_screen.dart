@@ -110,7 +110,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 builder: (_) => ChatScreen(
                   chatId: notif.relatedId!, // stored chatId
                   otherUserId: notif.fromUserId, // person who messaged you
-                  otherUserName: 'User', // person who messaged you
+                  otherUserName: notif.fromUserName, // name of person who messaged you
                 ),
               ),
             );

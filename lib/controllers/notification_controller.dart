@@ -56,10 +56,12 @@ class NotificationController {
   }) async {
     // Note: In a real app, 'fromUserId' is the current user.
     final fromId = currentUserId ?? 'system';
+    final fromName = _auth.currentUser?.displayName ?? 'Someone';
 
     final notification = NotificationModel(
       id: '', // Firestore generates this
       fromUserId: fromId,
+      fromUserName: fromName,
       title: title,
       body: body,
       type: type,

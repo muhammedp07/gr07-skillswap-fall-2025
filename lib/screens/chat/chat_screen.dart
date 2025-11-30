@@ -47,9 +47,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
 
+    // Get the current user's display name
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final senderName = currentUser?.displayName ?? 'Someone';
+
     await ChatService.instance.sendTextMessageAndNotify(
       chatId: widget.chatId,
       senderId: _currentUserId,
+      senderName: senderName,
       recipientId: widget.otherUserId, // who should get the notification
       text: text,
     );

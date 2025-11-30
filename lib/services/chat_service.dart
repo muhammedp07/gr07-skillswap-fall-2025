@@ -108,6 +108,7 @@ class ChatService {
   Future<void> sendTextMessageAndNotify({
     required String chatId,
     required String senderId,
+    required String senderName,
     required String recipientId,
     required String text,
     String? imageUrl,
@@ -133,7 +134,8 @@ class ChatService {
     final notification = NotificationModel(
       id: '', // Firestore will generate it
       fromUserId: senderId,
-      title: 'New message in SkillSwap',
+      fromUserName: senderName,
+      title: 'New message from $senderName',
       body: preview.length > 80 ? '${preview.substring(0, 80)}…' : preview,
       type: NotificationType.message,
       timestamp: DateTime.now(),

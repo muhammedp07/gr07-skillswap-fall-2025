@@ -40,6 +40,7 @@ exports.sendPushNotification = functions.firestore
           type: notification.type || "",
           relatedId: notification.relatedId || "",
           fromUserId: notification.fromUserId || "",
+          fromUserName: notification.fromUserName || "User",
           notificationId: context.params.notificationId,
         },
         android: {

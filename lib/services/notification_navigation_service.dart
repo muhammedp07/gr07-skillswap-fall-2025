@@ -10,6 +10,7 @@ class NotificationNavigationService {
     final type = data['type'];
     final relatedId = data['relatedId'];
     final fromUserId = data['fromUserId'];
+    final fromUserName = data['fromUserName'] ?? 'User';
 
     // Use the navigator key to push screens without context
     final navigator = navigatorKey.currentState;
@@ -23,6 +24,7 @@ class NotificationNavigationService {
               builder: (_) => ChatScreen(
                 chatId: relatedId,
                 otherUserId: fromUserId,
+                otherUserName: fromUserName,
               ),
             ),
           );
