@@ -8,6 +8,8 @@ class UserProfile {
   final List<SkillEntry> skillsLearn;
   final String? profileImageUrl;
   final String? bio;
+  final String? fcmToken;
+  final DateTime? fcmTokenUpdatedAt;
 
   /// Average rating given by other users (0.0–5.0).
   final double avgRating;
@@ -25,6 +27,8 @@ class UserProfile {
     this.bio,
     this.avgRating = 0.0,
     this.reviewsCount = 0,
+    this.fcmToken,
+    this.fcmTokenUpdatedAt,
   });
 
   // Helper getters for display

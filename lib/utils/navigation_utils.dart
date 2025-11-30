@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/auth/welcome_screen.dart';
+import '../services/push_notification_service.dart';
 
 class NavigationUtils {
   static Future<void> logout(BuildContext context) async {
@@ -10,6 +11,9 @@ class NavigationUtils {
       if (Navigator.canPop(context)) {
         Navigator.popUntil(context, (route) => route.isFirst);
       }
+      
+      // Clear FCM token BEFORE signing out (while we still have access to user's UID)
+      await PushNotificationService().clearFcmToken();
       
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
