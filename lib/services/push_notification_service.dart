@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'notification_navigation_service.dart';
 
 class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
@@ -113,6 +115,19 @@ class PushNotificationService {
 
     // Background/terminated message taps
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
+
+    // Check if app was opened from a terminated state via notification
+    _checkInitialMessage();
+  }
+
+  /// Check if app was launched from a terminated state by tapping a notification
+  Future<void> _checkInitialMessage() async {
+    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+    if (initialMessage != null) {
+      // Small delay to ensure navigator is ready
+      await Future.delayed(const Duration(milliseconds: 500));
+      _navigateFromMessage(initialMessage.data);
+    }
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
@@ -123,6 +138,9 @@ class PushNotificationService {
     AndroidNotification? android = message.notification?.android;
 
     if (notification != null) {
+      // Encode the full data map as JSON string for the payload
+      final payloadJson = jsonEncode(message.data);
+
       await _localNotifications.show(
         notification.hashCode,
         notification.title,
@@ -141,20 +159,33 @@ class PushNotificationService {
             presentSound: true,
           ),
         ),
-        payload: message.data['route'], // For navigation
+        payload: payloadJson, // Pass full data as JSON for navigation
       );
     }
   }
 
   void _handleMessageOpenedApp(RemoteMessage message) {
     print('Message opened app: ${message.data}');
-    // Handle navigation based on message.data
-    // You'll implement this with your navigation service
+    // Navigate based on the notification data
+    _navigateFromMessage(message.data);
   }
 
   void _onNotificationTapped(NotificationResponse response) {
     print('Notification tapped with payload: ${response.payload}');
-    // Handle navigation based on payload
+    // Parse the JSON payload and navigate
+    if (response.payload != null && response.payload!.isNotEmpty) {
+      try {
+        final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+        _navigateFromMessage(data);
+      } catch (e) {
+        print('Error parsing notification payload: $e');
+      }
+    }
+  }
+
+  /// Navigate to the appropriate screen based on notification data
+  void _navigateFromMessage(Map<String, dynamic> data) {
+    NotificationNavigationService.handleNotificationNavigation(data);
   }
 
   /// Call this when user logs out

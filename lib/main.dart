@@ -9,6 +9,7 @@ import 'screens/onboarding/profile_setup_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/push_notification_service.dart';
 import 'services/firebase_background_handler.dart';
+import 'services/notification_navigation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +35,7 @@ class SkillSwapApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true),
       home: const AuthGate(),
-      navigatorKey: GlobalKey<NavigatorState>(),
+      navigatorKey: NotificationNavigationService.navigatorKey,
     );
   }
 }
