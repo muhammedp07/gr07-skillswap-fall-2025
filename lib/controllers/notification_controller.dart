@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../services/push_notification_service.dart';
+import '../services/user_service.dart';
 
 class NotificationController {
   final NotificationService _service = NotificationService();
+  final PushNotificationService _pushService = PushNotificationService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? get currentUserId => _auth.currentUser?.uid;
@@ -18,6 +21,16 @@ class NotificationController {
     final uid = currentUserId;
     if (uid == null) return Stream.value(0);
     return _service.getUnreadCount(uid);
+  }
+
+  /// Initialize push notifications (call after login)
+  Future<void> initializePushNotifications() async {
+    await _pushService.initialize();
+  }
+
+  /// Clear FCM token (call on logout)
+  Future<void> clearPushNotifications() async {
+    await _pushService.clearFcmToken();
   }
 
   Future<void> markAsRead(String notificationId) async {
@@ -44,10 +57,22 @@ class NotificationController {
   }) async {
     // Note: In a real app, 'fromUserId' is the current user.
     final fromId = currentUserId ?? 'system';
+    
+    // Get the current user's name from Firestore (not Firebase Auth displayName)
+    String fromName = 'Someone';
+    try {
+      final userProfile = await UserService().getCurrentUserProfile();
+      if (userProfile != null && userProfile.name.isNotEmpty) {
+        fromName = userProfile.name;
+      }
+    } catch (e) {
+      // Fall back to 'Someone' if profile fetch fails
+    }
 
     final notification = NotificationModel(
       id: '', // Firestore generates this
       fromUserId: fromId,
+      fromUserName: fromName,
       title: title,
       body: body,
       type: type,

@@ -6,10 +6,22 @@ import 'package:gr07_skillswap/screens/home/home_screen.dart';
 import 'package:gr07_skillswap/services/user_service.dart';
 import 'firebase_options.dart';
 import 'screens/onboarding/profile_setup_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'services/push_notification_service.dart';
+import 'services/firebase_background_handler.dart';
+import 'services/notification_navigation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Set up background message handler (must be top-level function)
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  // NOTE: Don't initialize PushNotificationService here!
+  // It must be initialized AFTER user logs in, so the FCM token
+  // is saved to the correct user's Firestore document.
+
   runApp(const SkillSwapApp());
 }
 
@@ -23,7 +35,7 @@ class SkillSwapApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true),
       home: const AuthGate(),
-      navigatorKey: GlobalKey<NavigatorState>(),
+      navigatorKey: NotificationNavigationService.navigatorKey,
     );
   }
 }
@@ -56,8 +68,14 @@ class _AuthGateState extends State<AuthGate> {
         final user = snapshot.data;
 
         if (user == null) {
+          // User not logged in or logged out
+          // FCM token is cleared in NavigationUtils.logout() BEFORE signOut
           return const WelcomeScreen();
         }
+
+        // User is logged in - initialize push notifications
+        // This saves the FCM token to THIS user's Firestore document
+        PushNotificationService().initialize();
 
         return FutureBuilder<bool>(
           future: UserService().doesProfileExist(),

@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
 import '../chat/chat_screen.dart';
+import '../reviews/leave_review_screen.dart';
+import '../swap/scheduled_swaps_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -101,19 +103,51 @@ class _NotificationScreenState extends State<NotificationScreen> {
           // Still mark this one as read explicitly (safe even if already read)
           _controller.markAsRead(notif.id);
 
-          // If it's a message notification and we have a chatId stored, open that chat.
-          if (notif.type == NotificationType.message &&
-              notif.relatedId != null &&
-              notif.relatedId!.isNotEmpty) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ChatScreen(
-                  chatId: notif.relatedId!, // stored chatId
-                  otherUserId: notif.fromUserId, // person who messaged you
-                  otherUserName: 'User', // person who messaged you
+          // Navigate based on notification type
+          if (notif.relatedId == null || notif.relatedId!.isEmpty) return;
+
+          switch (notif.type) {
+            case NotificationType.message:
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(
+                    chatId: notif.relatedId!,
+                    otherUserId: notif.fromUserId,
+                    otherUserName: notif.fromUserName,
+                  ),
                 ),
-              ),
-            );
+              );
+              break;
+
+            case NotificationType.swapCompleted:
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LeaveReviewScreen(
+                    chatId: notif.relatedId!,
+                    otherUserId: notif.fromUserId,
+                    otherUserName: notif.fromUserName,
+                  ),
+                ),
+              );
+              break;
+
+            case NotificationType.swapReminder:
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ScheduledSwapsScreen(
+                    chatId: notif.relatedId!,
+                    otherUserId: notif.fromUserId,
+                    otherUserName: notif.fromUserName,
+                  ),
+                ),
+              );
+              break;
+
+            case NotificationType.swapRequest:
+            case NotificationType.swapAccepted:
+            case NotificationType.reviewReminder:
+              // No specific navigation for these yet
+              break;
           }
         },
       ),
@@ -128,6 +162,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Colors.orange;
       case NotificationType.swapAccepted:
         return Colors.green;
+      case NotificationType.swapCompleted:
+        return Colors.teal;
+      case NotificationType.swapReminder:
+        return Colors.amber;
       case NotificationType.reviewReminder:
         return Colors.purple;
     }
@@ -141,6 +179,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Icons.swap_horiz;
       case NotificationType.swapAccepted:
         return Icons.check_circle;
+      case NotificationType.swapCompleted:
+        return Icons.done_all;
+      case NotificationType.swapReminder:
+        return Icons.schedule;
       case NotificationType.reviewReminder:
         return Icons.star;
     }

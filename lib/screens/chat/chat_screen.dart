@@ -7,8 +7,12 @@ import 'package:gr07_skillswap/screens/swap/scheduled_swaps_screen.dart';
 
 import '../../models/chat_models.dart'
     as chat_models; // 👈 Chat + SwapStatus + dummy data
+import '../../models/notification_model.dart';
 import '../../services/chat_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/review_service.dart'; // 👈 NEW
+import '../../services/user_service.dart';
+import '../profile/public_profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -47,12 +51,116 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
 
+    // Get the current user's name from Firestore (not Firebase Auth displayName)
+    String senderName = 'Someone';
+    try {
+      final userProfile = await UserService().getCurrentUserProfile();
+      if (userProfile != null && userProfile.name.isNotEmpty) {
+        senderName = userProfile.name;
+      }
+    } catch (e) {
+      // Fall back to 'Someone' if profile fetch fails
+    }
+
     await ChatService.instance.sendTextMessageAndNotify(
       chatId: widget.chatId,
       senderId: _currentUserId,
-      recipientId: widget.otherUserId, // who should get the notification
+      senderName: senderName,
+      recipientId: widget.otherUserId,
       text: text,
     );
+  }
+
+  /// Show confirmation dialog to delete the entire chat thread
+  Future<void> _confirmDeleteChat() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Chat'),
+        content: const Text(
+          'Are you sure you want to delete this entire conversation? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ChatService.instance.deleteChat(widget.chatId);
+        if (mounted) {
+          Navigator.of(context).pop(); // Go back to chat list
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Chat deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to delete chat: $e')));
+        }
+      }
+    }
+  }
+
+  /// Show confirmation dialog to delete a single message
+  Future<void> _confirmDeleteMessage(chat_models.ChatMessage message) async {
+    // Only allow users to delete their own messages
+    if (message.senderId != _currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can only delete your own messages')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Message'),
+        content: const Text('Are you sure you want to delete this message?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ChatService.instance.deleteMessage(
+          chatId: widget.chatId,
+          messageId: message.id,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Message deleted')));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete message: $e')),
+          );
+        }
+      }
+    }
   }
 
   /// Open bottom sheet to rate + confirm swap completion.
@@ -92,6 +200,37 @@ class _ChatScreenState extends State<ChatScreen> {
                   status: chat_models.SwapStatus.completed,
                   markedByUserId: _currentUserId,
                 );
+
+                // 3) Send notification to other user to leave a review
+                String senderName = 'Someone';
+                try {
+                  final userProfile = await UserService()
+                      .getCurrentUserProfile();
+                  if (userProfile != null && userProfile.name.isNotEmpty) {
+                    senderName = userProfile.name;
+                  }
+                } catch (_) {}
+
+                final notification = NotificationModel(
+                  id: '',
+                  fromUserId: _currentUserId,
+                  fromUserName: senderName,
+                  title: 'Swap Completed!',
+                  body:
+                      '$senderName marked your swap as complete. Leave a review!',
+                  type: NotificationType.swapCompleted,
+                  timestamp: DateTime.now(),
+                  relatedId: widget.chatId,
+                );
+
+                try {
+                  await NotificationService().sendNotification(
+                    widget.otherUserId,
+                    notification,
+                  );
+                } catch (_) {
+                  // Don't fail the whole operation if notification fails
+                }
 
                 if (!mounted) return;
 
@@ -266,17 +405,58 @@ class _ChatScreenState extends State<ChatScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Chat'),
+            title: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PublicProfileScreen(
+                      userId: widget.otherUserId,
+                    ),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.otherUserName,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  if (chat != null)
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCompleted ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isCompleted ? 'Completed' : 'In progress',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
             actions: [
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
                 itemBuilder: (context) => [
+                  // Scheduling options
                   const PopupMenuItem(
                     value: 'schedule',
                     child: Row(
                       children: [
                         Icon(Icons.schedule, color: Colors.blue),
-                        SizedBox(width: 8),
+                        SizedBox(width: 12),
                         Text('Schedule Swap'),
                       ],
                     ),
@@ -285,9 +465,34 @@ class _ChatScreenState extends State<ChatScreen> {
                     value: 'view_schedules',
                     child: Row(
                       children: [
-                        Icon(Icons.list, color: Colors.green),
-                        SizedBox(width: 8),
+                        Icon(Icons.list, color: Colors.blue),
+                        SizedBox(width: 12),
                         Text('View Scheduled Swaps'),
+                      ],
+                    ),
+                  ),
+                  // Divider
+                  const PopupMenuDivider(),
+                  // Status action
+                  if (chat != null && !isCompleted)
+                    const PopupMenuItem(
+                      value: 'mark_done',
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.green),
+                          SizedBox(width: 12),
+                          Text('Mark as Done'),
+                        ],
+                      ),
+                    ),
+                  // Delete option
+                  const PopupMenuItem(
+                    value: 'delete_chat',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 12),
+                        Text('Delete Chat'),
                       ],
                     ),
                   ),
@@ -297,55 +502,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     _navigateToScheduleSwap();
                   } else if (value == 'view_schedules') {
                     _navigateToScheduledSwaps();
+                  } else if (value == 'mark_done' && chat != null) {
+                    _onMarkDonePressed(chat);
+                  } else if (value == 'delete_chat') {
+                    _confirmDeleteChat();
                   }
                 },
               ),
-              if (chat != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 10.0,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isCompleted ? Colors.green : Colors.orange,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isCompleted
-                              ? Icons.check_circle
-                              : Icons.hourglass_top,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isCompleted ? 'Completed' : 'In progress',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              if (chat != null && !isCompleted)
-                TextButton.icon(
-                  onPressed: () => _onMarkDonePressed(chat),
-                  icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                  label: const Text(
-                    'Mark done',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
             ],
           ),
           body: Column(
@@ -406,21 +569,26 @@ class _ChatScreenState extends State<ChatScreen> {
                           alignment: isMe
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey.shade800,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              message.text,
-                              style: const TextStyle(color: Colors.white),
+                          child: GestureDetector(
+                            onLongPress: isMe
+                                ? () => _confirmDeleteMessage(message)
+                                : null,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isMe
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey.shade800,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                message.text,
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ),
                           ),
                         );
