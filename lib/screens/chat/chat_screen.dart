@@ -55,12 +55,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 🎥 Start (or reuse) a video call session for this chat.
+  /// 🎥 Start a video call session for this chat.
   Future<void> _handleStartCall() async {
     try {
-      final session = await VideoCallService.instance.createOrGetActiveSession(
+      final session = await VideoCallService.instance.createSession(
         chatId: widget.chatId,
         hostUserId: _currentUserId,
+        // sdkRoomId will be wired to Zego in the next step
       );
 
       if (!mounted) return;
@@ -73,7 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       );
 
-      // TODO: in the next step, navigate to actual video call UI using [session].
+      // TODO: next step -> navigate to video call UI with [session].
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -300,7 +301,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 icon: const Icon(Icons.videocam),
                 onPressed: _handleStartCall,
               ),
-
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
                 itemBuilder: (context) => [
