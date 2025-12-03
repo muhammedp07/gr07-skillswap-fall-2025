@@ -1,5 +1,3 @@
-// lib/screens/chat/chat_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/screens/swap/schedule_swap_screen.dart';
@@ -32,7 +30,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String get _currentUserId {
     final user = FirebaseAuth.instance.currentUser;
-    // Fallback to dummy id if somehow not logged in
+    // small fallback so chat still works if auth glitches
     return user?.uid ?? chat_models.dummyCurrentUserId;
   }
 
@@ -51,31 +49,46 @@ class _ChatScreenState extends State<ChatScreen> {
     await ChatService.instance.sendTextMessageAndNotify(
       chatId: widget.chatId,
       senderId: _currentUserId,
-      recipientId: widget.otherUserId, // who should get the notification
+      recipientId: widget.otherUserId,
       text: text,
     );
   }
 
-  /// 🎥 Start a video call session for this chat.
+  /// Start (or reuse) a video call session for this chat and push the Zego call UI.
   Future<void> _handleStartCall() async {
     try {
-      // 1) Create a Firestore session row
-      final session = await VideoCallService.instance.createSession(
+      // create or reuse active Firestore session
+      final session = await VideoCallService.instance.createOrGetActiveSession(
         chatId: widget.chatId,
         hostUserId: _currentUserId,
       );
 
       if (!mounted) return;
 
-      // 2) Jump into the Zego call screen
+      final user = FirebaseAuth.instance.currentUser;
+
+      // make sure userName is NEVER empty (Zego asserts on this)
+      String localUserName = (user?.displayName ?? '').trim();
+
+      if (localUserName.isEmpty) {
+        final emailPrefix = (user?.email ?? '').split('@').first;
+        localUserName = emailPrefix.isNotEmpty ? emailPrefix : 'SkillSwap user';
+      }
+
+      // use session id as room/call id for now, but keep sdkRoomId hook
+      String callId = (session.sdkRoomId ?? session.id).trim();
+      if (callId.isEmpty) {
+        callId = session.id;
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => VideoCallScreen(
-            callId: session.id, // use session id as the Zego callID
+            sessionId: session.id,
+            callId: callId,
             localUserId: _currentUserId,
-            localUserName: 'User ${_currentUserId.substring(0, 4)}',
-            // later we can swap this for real display name
+            localUserName: localUserName,
           ),
         ),
       );
@@ -87,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  /// Open bottom sheet to rate + confirm swap completion.
+  /// bottom sheet for marking swap done + review
   void _onMarkDonePressed(chat_models.Chat chat) {
     showModalBottomSheet(
       context: context,
@@ -109,7 +122,6 @@ class _ChatScreenState extends State<ChatScreen> {
               setModalState(() => isSaving = true);
 
               try {
-                // 1) Save review
                 await ReviewService.instance.submitReview(
                   chatId: widget.chatId,
                   fromUserId: _currentUserId,
@@ -118,7 +130,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   comment: commentController.text,
                 );
 
-                // 2) Mark swap as completed on the chat
                 await ChatService.instance.updateSwapStatus(
                   chatId: widget.chatId,
                   status: chat_models.SwapStatus.completed,
@@ -127,8 +138,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 if (!mounted) return;
 
-                Navigator.of(ctx).pop(); // close bottom sheet
-
+                Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Swap marked as done and review submitted.'),
@@ -184,8 +194,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // ⭐ Rating row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (index) {
@@ -204,10 +212,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       );
                     }),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Optional comment
                   TextField(
                     controller: commentController,
                     maxLines: 3,
@@ -229,10 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Buttons
                   Row(
                     children: [
                       Expanded(
@@ -288,7 +290,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🧠 Outer stream: watch the chat itself for swapStatus changes
     return StreamBuilder<chat_models.Chat?>(
       stream: ChatService.instance.watchChat(widget.chatId),
       builder: (context, chatSnap) {
@@ -300,15 +301,14 @@ class _ChatScreenState extends State<ChatScreen> {
           appBar: AppBar(
             title: const Text('Chat'),
             actions: [
-              // 🎥 start video call icon
               IconButton(
                 icon: const Icon(Icons.videocam),
                 onPressed: _handleStartCall,
               ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
                     value: 'schedule',
                     child: Row(
                       children: [
@@ -318,7 +318,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'view_schedules',
                     child: Row(
                       children: [
@@ -391,7 +391,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: StreamBuilder<List<chat_models.ChatMessage>>(
                   stream: ChatService.instance.watchMessages(widget.chatId),
                   builder: (context, snapshot) {
-                    // When messages arrive, mark the latest incoming one as read
                     List<chat_models.ChatMessage> messages = [];
 
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
@@ -411,10 +410,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     } else if (snapshot.connectionState ==
                             ConnectionState.waiting &&
                         !snapshot.hasData) {
-                      // first load
                       return const Center(child: CircularProgressIndicator());
                     } else {
-                      // no Firestore messages yet -> fall back to dummy (preview only)
                       messages =
                           chat_models.dummyMessagesByChatId[widget.chatId] ??
                           [];
