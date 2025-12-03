@@ -12,6 +12,7 @@ import '../../services/chat_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/review_service.dart'; // 👈 NEW
 import '../../services/user_service.dart';
+import '../profile/public_profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -404,35 +405,46 @@ class _ChatScreenState extends State<ChatScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.otherUserName,
-                  style: const TextStyle(fontSize: 16),
-                ),
-                if (chat != null)
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isCompleted ? Colors.green : Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isCompleted ? 'Completed' : 'In progress',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
-                    ],
+            title: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PublicProfileScreen(
+                      userId: widget.otherUserId,
+                    ),
                   ),
-              ],
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.otherUserName,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  if (chat != null)
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCompleted ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isCompleted ? 'Completed' : 'In progress',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
             actions: [
               PopupMenuButton<String>(
