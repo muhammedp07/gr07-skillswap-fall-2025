@@ -7,21 +7,16 @@ import '../models/video_call_session.dart';
 class VideoCallService {
   VideoCallService._();
 
-  /// Simple singleton: use `VideoCallService.instance` everywhere.
   static final VideoCallService instance = VideoCallService._();
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-
   static const String _collection = 'video_call_sessions';
 
-  /// Create a new video-call session for a given chat.
-  ///
-  /// [roomId] is the ID we’ll eventually get from the video SDK (e.g. ZEGOCLOUD,
-  /// Daily, etc). For now we keep it optional and default to an empty string.
+  /// Create a new video call session for a chat.
   Future<VideoCallSession> createSession({
     required String chatId,
     required String hostUserId,
-    String? roomId,
+    String? sdkRoomId, // can be wired to Zego later
   }) async {
     final docRef = _db.collection(_collection).doc();
     final now = DateTime.now();
@@ -34,23 +29,23 @@ class VideoCallService {
       status: VideoCallStatus.active,
       createdAt: now,
       endedAt: null,
-      roomId: roomId ?? '',
+      sdkRoomId: sdkRoomId,
     );
 
     await docRef.set(session.toMap());
     return session;
   }
 
-  /// Either return the existing active session for this chat
-  /// or create a new one if none exists.
+  /// Try to reuse an active session for this chat, otherwise create one.
   Future<VideoCallSession> createOrGetActiveSession({
     required String chatId,
     required String hostUserId,
   }) async {
+    // look for an active session for this chat
     final snap = await _db
         .collection(_collection)
         .where('chatId', isEqualTo: chatId)
-        .where('status', isEqualTo: VideoCallStatus.active.name)
+        .where('status', isEqualTo: 'active')
         .limit(1)
         .get();
 
@@ -59,58 +54,27 @@ class VideoCallService {
       return VideoCallSession.fromMap(doc.id, doc.data());
     }
 
-    // No active call -> create a new one
-    return createSession(chatId: chatId, hostUserId: hostUserId);
+    // nothing active, make a new one
+    return createSession(
+      chatId: chatId,
+      hostUserId: hostUserId,
+      sdkRoomId: null,
+    );
   }
 
-  /// Join an existing call (we just track you in the participants array).
-  Future<void> joinSession({
-    required String sessionId,
-    required String userId,
-  }) async {
-    await _db.collection(_collection).doc(sessionId).update({
-      'participantIds': FieldValue.arrayUnion([userId]),
-    });
-  }
-
-  /// Optionally leave a call without ending it.
-  Future<void> leaveSession({
-    required String sessionId,
-    required String userId,
-  }) async {
-    await _db.collection(_collection).doc(sessionId).update({
-      'participantIds': FieldValue.arrayRemove([userId]),
-    });
-  }
-
-  /// End the call (host or whoever you decide can do this).
-  Future<void> endSession({required String sessionId}) async {
-    await _db.collection(_collection).doc(sessionId).update({
-      'status': VideoCallStatus.ended.name,
-      'endedAt': DateTime.now(),
-    });
-  }
-
-  /// Watch a single session by id (live updates while people join/leave).
-  Stream<VideoCallSession?> watchSessionById(String sessionId) {
+  /// Watch a single session (to see join/leave, end, etc.).
+  Stream<VideoCallSession?> watchSession(String sessionId) {
     return _db.collection(_collection).doc(sessionId).snapshots().map((snap) {
       if (!snap.exists) return null;
       return VideoCallSession.fromMap(snap.id, snap.data()!);
     });
   }
 
-  /// Watch the active call (if any) for a given chat.
-  Stream<VideoCallSession?> watchActiveSessionForChat(String chatId) {
-    return _db
-        .collection(_collection)
-        .where('chatId', isEqualTo: chatId)
-        .where('status', isEqualTo: VideoCallStatus.active.name)
-        .limit(1)
-        .snapshots()
-        .map((snap) {
-          if (snap.docs.isEmpty) return null;
-          final doc = snap.docs.first;
-          return VideoCallSession.fromMap(doc.id, doc.data());
-        });
+  /// Mark the call as ended.
+  Future<void> endSession(String sessionId) async {
+    await _db.collection(_collection).doc(sessionId).update({
+      'status': 'ended',
+      'endedAt': Timestamp.fromDate(DateTime.now()),
+    });
   }
 }
