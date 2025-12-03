@@ -5,10 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/screens/swap/schedule_swap_screen.dart';
 import 'package:gr07_skillswap/screens/swap/scheduled_swaps_screen.dart';
 
-import '../../models/chat_models.dart'
-    as chat_models; // 👈 Chat + SwapStatus + dummy data
+import '../../models/chat_models.dart' as chat_models;
 import '../../services/chat_service.dart';
-import '../../services/review_service.dart'; // 👈 NEW
+import '../../services/review_service.dart';
+import '../../services/video_call_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -53,6 +53,33 @@ class _ChatScreenState extends State<ChatScreen> {
       recipientId: widget.otherUserId, // who should get the notification
       text: text,
     );
+  }
+
+  /// 🎥 Start (or reuse) a video call session for this chat.
+  Future<void> _handleStartCall() async {
+    try {
+      final session = await VideoCallService.instance.createOrGetActiveSession(
+        chatId: widget.chatId,
+        hostUserId: _currentUserId,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Video call session ready (id: ${session.id.substring(0, 6)}...)',
+          ),
+        ),
+      );
+
+      // TODO: in the next step, navigate to actual video call UI using [session].
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to start call: $e')));
+    }
   }
 
   /// Open bottom sheet to rate + confirm swap completion.
@@ -268,6 +295,12 @@ class _ChatScreenState extends State<ChatScreen> {
           appBar: AppBar(
             title: const Text('Chat'),
             actions: [
+              // 🎥 start video call icon
+              IconButton(
+                icon: const Icon(Icons.videocam),
+                onPressed: _handleStartCall,
+              ),
+
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
                 itemBuilder: (context) => [
@@ -482,7 +515,7 @@ class _ChatScreenState extends State<ChatScreen> {
           postId: 'from_chat_${widget.chatId}',
           chatId: widget.chatId,
           otherUserId: widget.otherUserId,
-          otherUserName: widget.otherUserName, // Use the actual name
+          otherUserName: widget.otherUserName,
         ),
       ),
     );
@@ -495,7 +528,7 @@ class _ChatScreenState extends State<ChatScreen> {
         builder: (_) => ScheduledSwapsScreen(
           chatId: widget.chatId,
           otherUserId: widget.otherUserId,
-          otherUserName: widget.otherUserName, // Use the actual name
+          otherUserName: widget.otherUserName,
         ),
       ),
     );

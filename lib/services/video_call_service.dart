@@ -17,8 +17,7 @@ class VideoCallService {
   /// Create a new video-call session for a given chat.
   ///
   /// [roomId] is the ID we’ll eventually get from the video SDK (e.g. ZEGOCLOUD,
-  /// Daily, etc). For now we keep it optional and default to an empty string,
-  /// so we can still compile and store the doc.
+  /// Daily, etc). For now we keep it optional and default to an empty string.
   Future<VideoCallSession> createSession({
     required String chatId,
     required String hostUserId,
@@ -27,13 +26,12 @@ class VideoCallService {
     final docRef = _db.collection(_collection).doc();
     final now = DateTime.now();
 
-    // Adjust these field names if your model is slightly different.
     final session = VideoCallSession(
       id: docRef.id,
       chatId: chatId,
       hostUserId: hostUserId,
       participantIds: [hostUserId],
-      status: VideoCallStatus.active, // or `.pending` if your enum has that
+      status: VideoCallStatus.active,
       createdAt: now,
       endedAt: null,
       roomId: roomId ?? '',
@@ -41,6 +39,28 @@ class VideoCallService {
 
     await docRef.set(session.toMap());
     return session;
+  }
+
+  /// Either return the existing active session for this chat
+  /// or create a new one if none exists.
+  Future<VideoCallSession> createOrGetActiveSession({
+    required String chatId,
+    required String hostUserId,
+  }) async {
+    final snap = await _db
+        .collection(_collection)
+        .where('chatId', isEqualTo: chatId)
+        .where('status', isEqualTo: VideoCallStatus.active.name)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isNotEmpty) {
+      final doc = snap.docs.first;
+      return VideoCallSession.fromMap(doc.id, doc.data());
+    }
+
+    // No active call -> create a new one
+    return createSession(chatId: chatId, hostUserId: hostUserId);
   }
 
   /// Join an existing call (we just track you in the participants array).
@@ -63,7 +83,7 @@ class VideoCallService {
     });
   }
 
-  /// End the call
+  /// End the call (host or whoever you decide can do this).
   Future<void> endSession({required String sessionId}) async {
     await _db.collection(_collection).doc(sessionId).update({
       'status': VideoCallStatus.ended.name,
@@ -80,8 +100,6 @@ class VideoCallService {
   }
 
   /// Watch the active call (if any) for a given chat.
-  ///
-  /// This lets the chat screen show “Join call” / “In call” banners.
   Stream<VideoCallSession?> watchActiveSessionForChat(String chatId) {
     return _db
         .collection(_collection)
