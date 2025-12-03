@@ -9,6 +9,7 @@ import '../../models/chat_models.dart'
     as chat_models; // 👈 Chat + SwapStatus + dummy data
 import '../../services/chat_service.dart';
 import '../../services/review_service.dart'; // 👈 NEW
+import '../../services/user_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -47,15 +48,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
 
-    // Get the current user's display name
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final senderName = currentUser?.displayName ?? 'Someone';
+    // Get the current user's name from Firestore (not Firebase Auth displayName)
+    String senderName = 'Someone';
+    try {
+      final userProfile = await UserService().getCurrentUserProfile();
+      if (userProfile != null && userProfile.name.isNotEmpty) {
+        senderName = userProfile.name;
+      }
+    } catch (e) {
+      // Fall back to 'Someone' if profile fetch fails
+    }
 
     await ChatService.instance.sendTextMessageAndNotify(
       chatId: widget.chatId,
       senderId: _currentUserId,
       senderName: senderName,
-      recipientId: widget.otherUserId, // who should get the notification
+      recipientId: widget.otherUserId,
       text: text,
     );
   }

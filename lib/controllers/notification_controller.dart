@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/push_notification_service.dart';
+import '../services/user_service.dart';
 
 class NotificationController {
   final NotificationService _service = NotificationService();
@@ -56,7 +57,17 @@ class NotificationController {
   }) async {
     // Note: In a real app, 'fromUserId' is the current user.
     final fromId = currentUserId ?? 'system';
-    final fromName = _auth.currentUser?.displayName ?? 'Someone';
+    
+    // Get the current user's name from Firestore (not Firebase Auth displayName)
+    String fromName = 'Someone';
+    try {
+      final userProfile = await UserService().getCurrentUserProfile();
+      if (userProfile != null && userProfile.name.isNotEmpty) {
+        fromName = userProfile.name;
+      }
+    } catch (e) {
+      // Fall back to 'Someone' if profile fetch fails
+    }
 
     final notification = NotificationModel(
       id: '', // Firestore generates this
