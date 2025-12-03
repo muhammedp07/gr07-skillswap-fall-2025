@@ -34,21 +34,10 @@ class ChatListScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
-              'Messages',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Messages',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              'Your conversations',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ),
           const SizedBox(height: 8),

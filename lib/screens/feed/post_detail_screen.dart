@@ -41,7 +41,7 @@ class PostDetailScreen extends StatelessWidget {
     }
 
     try {
-      final chatId = await ChatService.instance.createOrGetChatForPost(
+      final chatId = await ChatService.instance.createOrGetChatBetweenUsers(
         currentUserId: currentUser.uid,
         otherUserId: post.userId,
         postId: post.id,
