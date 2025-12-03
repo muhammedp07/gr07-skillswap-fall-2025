@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/notifications/notification_screen.dart';
+import '../screens/reviews/leave_review_screen.dart';
+import '../screens/swap/scheduled_swaps_screen.dart';
 
 class NotificationNavigationService {
   static final GlobalKey<NavigatorState> navigatorKey = 
@@ -44,11 +46,49 @@ class NotificationNavigationService {
         );
         break;
         
+      case 'swapCompleted':
+        // Navigate to leave review screen
+        if (relatedId != null && relatedId.isNotEmpty && fromUserId != null) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => LeaveReviewScreen(
+                chatId: relatedId,
+                otherUserId: fromUserId,
+                otherUserName: fromUserName,
+              ),
+            ),
+          );
+        } else {
+          navigator.push(
+            MaterialPageRoute(builder: (_) => const NotificationScreen()),
+          );
+        }
+        break;
+
       case 'reviewReminder':
         // Navigate to notifications screen for now
         navigator.push(
           MaterialPageRoute(builder: (_) => const NotificationScreen()),
         );
+        break;
+
+      case 'swapReminder':
+        // Navigate to scheduled swaps screen
+        if (relatedId != null && relatedId.isNotEmpty && fromUserId != null) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => ScheduledSwapsScreen(
+                chatId: relatedId,
+                otherUserId: fromUserId,
+                otherUserName: fromUserName,
+              ),
+            ),
+          );
+        } else {
+          navigator.push(
+            MaterialPageRoute(builder: (_) => const NotificationScreen()),
+          );
+        }
         break;
         
       default:

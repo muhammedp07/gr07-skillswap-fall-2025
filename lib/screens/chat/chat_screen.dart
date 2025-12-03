@@ -7,7 +7,9 @@ import 'package:gr07_skillswap/screens/swap/scheduled_swaps_screen.dart';
 
 import '../../models/chat_models.dart'
     as chat_models; // 👈 Chat + SwapStatus + dummy data
+import '../../models/notification_model.dart';
 import '../../services/chat_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/review_service.dart'; // 👈 NEW
 import '../../services/user_service.dart';
 
@@ -197,6 +199,37 @@ class _ChatScreenState extends State<ChatScreen> {
                   status: chat_models.SwapStatus.completed,
                   markedByUserId: _currentUserId,
                 );
+
+                // 3) Send notification to other user to leave a review
+                String senderName = 'Someone';
+                try {
+                  final userProfile = await UserService()
+                      .getCurrentUserProfile();
+                  if (userProfile != null && userProfile.name.isNotEmpty) {
+                    senderName = userProfile.name;
+                  }
+                } catch (_) {}
+
+                final notification = NotificationModel(
+                  id: '',
+                  fromUserId: _currentUserId,
+                  fromUserName: senderName,
+                  title: 'Swap Completed!',
+                  body:
+                      '$senderName marked your swap as complete. Leave a review!',
+                  type: NotificationType.swapCompleted,
+                  timestamp: DateTime.now(),
+                  relatedId: widget.chatId,
+                );
+
+                try {
+                  await NotificationService().sendNotification(
+                    widget.otherUserId,
+                    notification,
+                  );
+                } catch (_) {
+                  // Don't fail the whole operation if notification fails
+                }
 
                 if (!mounted) return;
 

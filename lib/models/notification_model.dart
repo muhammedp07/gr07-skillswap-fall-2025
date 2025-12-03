@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum NotificationType {
-  message,      // "New Message from Sara"
-  swapRequest,  // "Abul wants to swap skills"
-  swapAccepted, // "Swap Accepted!"
+  message,       // "New Message from Sara"
+  swapRequest,   // "Abul wants to swap skills"
+  swapAccepted,  // "Swap Accepted!"
+  swapCompleted, // "Swap marked as complete"
+  swapReminder,  // "Your swap session is in 24 hours"
   reviewReminder // "Don't forget to review..."
 }
 
