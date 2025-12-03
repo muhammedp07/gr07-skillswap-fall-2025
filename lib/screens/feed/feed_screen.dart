@@ -861,8 +861,8 @@ class _FeedScreenState extends State<FeedScreen> {
     }
 
     try {
-      // This returns the chatId (String)
-      final chatId = await _chatService.createOrGetChatForPost(
+      // This returns the chatId (String) - ensures only one chat between two users
+      final chatId = await _chatService.createOrGetChatBetweenUsers(
         postId: post.id,
         currentUserId: currentUser.uid,
         otherUserId: post.userId,

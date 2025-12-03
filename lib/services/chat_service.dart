@@ -287,4 +287,128 @@ class ChatService {
       return Chat.fromMap(docSnap.id, docSnap.data()!);
     });
   }
+
+  /// Delete a single message from a chat.
+  /// Only the message sender should be allowed to delete their own messages.
+  Future<void> deleteMessage({
+    required String chatId,
+    required String messageId,
+  }) async {
+    final msgRef = _db
+        .collection(chatsCollection)
+        .doc(chatId)
+        .collection(messagesSubcollection)
+        .doc(messageId);
+
+    await msgRef.delete();
+
+    // Update the chat's lastMessage if we deleted the most recent one
+    final latestMessages = await _db
+        .collection(chatsCollection)
+        .doc(chatId)
+        .collection(messagesSubcollection)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    if (latestMessages.docs.isNotEmpty) {
+      final latestMsg = latestMessages.docs.first.data();
+      await _db.collection(chatsCollection).doc(chatId).update({
+        'lastMessage': latestMsg['text'] ?? '',
+        'lastMessageAt': latestMsg['createdAt'],
+        'lastMessageSenderId': latestMsg['senderId'],
+      });
+    } else {
+      // No messages left, reset the lastMessage fields
+      await _db.collection(chatsCollection).doc(chatId).update({
+        'lastMessage': '',
+        'lastMessageAt': Timestamp.now(),
+        'lastMessageSenderId': null,
+      });
+    }
+  }
+
+  /// Delete an entire chat thread and all its messages.
+  /// This will remove the chat document and all messages in the subcollection.
+  Future<void> deleteChat(String chatId) async {
+    final chatRef = _db.collection(chatsCollection).doc(chatId);
+    final messagesRef = chatRef.collection(messagesSubcollection);
+
+    // First, delete all messages in the subcollection
+    final messagesSnapshot = await messagesRef.get();
+    final batch = _db.batch();
+
+    for (final doc in messagesSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Then delete the chat document itself
+    batch.delete(chatRef);
+
+    await batch.commit();
+  }
+
+  /// Check if a chat already exists between two users (regardless of postId).
+  /// Returns the existing chatId if found, null otherwise.
+  Future<String?> getExistingChatBetweenUsers({
+    required String userId1,
+    required String userId2,
+  }) async {
+    final chatsRef = _db.collection(chatsCollection);
+
+    // Query for chats that contain userId1
+    final existing = await chatsRef
+        .where('members', arrayContains: userId1)
+        .get();
+
+    for (final doc in existing.docs) {
+      final data = doc.data();
+      final members = List<String>.from(data['members'] ?? []);
+      if (members.contains(userId2)) {
+        // found a matching chat between the two users
+        return doc.id;
+      }
+    }
+
+    return null;
+  }
+
+  /// Create a chat for a given post (or return the existing one)
+  /// between the current user and the owner of the post.
+  /// This will return an existing chat if one already exists between the two users.
+  ///
+  /// Returns the chatId to navigate to.
+  Future<String> createOrGetChatBetweenUsers({
+    required String currentUserId,
+    required String otherUserId,
+    String? postId,
+  }) async {
+    // First check if there's already a chat between these two users
+    final existingChatId = await getExistingChatBetweenUsers(
+      userId1: currentUserId,
+      userId2: otherUserId,
+    );
+
+    if (existingChatId != null) {
+      return existingChatId;
+    }
+
+    // If not found, create a new chat doc
+    final chatsRef = _db.collection(chatsCollection);
+    final now = Timestamp.now();
+    final newChatRef = chatsRef.doc();
+
+    await newChatRef.set({
+      'members': [currentUserId, otherUserId],
+      'lastMessage': '',
+      'lastMessageAt': now,
+      'lastMessageSenderId': currentUserId,
+      'postId': postId,
+      // keep in sync with Chat model defaults
+      'swapStatus': SwapStatus.open.name,
+      'swapMarkedByUserId': null,
+    });
+
+    return newChatRef.id;
+  }
 }
