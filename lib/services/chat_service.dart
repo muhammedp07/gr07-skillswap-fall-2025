@@ -20,8 +20,6 @@ class ChatService {
   final NotificationService _notificationService = NotificationService();
 
   /// Watch all chats where the given user is a member.
-  /// We only filter by `members` in Firestore (no orderBy) so we don't need a
-  /// composite index. Then we sort by `lastMessageAt` on the client.
   Stream<List<Chat>> watchChatsForUser(String userId) {
     return _db
         .collection(chatsCollection)
@@ -32,9 +30,8 @@ class ChatService {
               .map((doc) => Chat.fromMap(doc.id, doc.data()))
               .toList();
 
-          // Sort newest first on the client
+          // newest first
           chats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
-
           return chats;
         });
   }
@@ -81,7 +78,6 @@ class ChatService {
           'lastMessageAt': now,
           'lastMessageSenderId': senderId,
           'postId': null,
-          // if your Chat model has swapStatus, this keeps it in sync:
           'swapStatus': SwapStatus.open.name,
           'swapMarkedByUserId': null,
         });
@@ -105,12 +101,14 @@ class ChatService {
   }
 
   /// Send a text message AND create a notification for the other user.
+  ///
+  /// NOTE: senderName is used in the notification.
   Future<void> sendTextMessageAndNotify({
     required String chatId,
     required String senderId,
-    required String senderName,
     required String recipientId,
     required String text,
+    required String senderName,
     String? imageUrl,
   }) async {
     final trimmed = text.trim();
@@ -118,7 +116,7 @@ class ChatService {
       return;
     }
 
-    // 1) send the message (re-use the existing logic)
+    // 1) send the message
     await sendTextMessage(
       chatId: chatId,
       senderId: senderId,
@@ -126,34 +124,33 @@ class ChatService {
       imageUrl: imageUrl,
     );
 
-    // 2) fire an in-app notification for the recipient
-    if (senderId == recipientId) return; // just in case
+    // 2) in-app notification for the recipient
+    if (senderId == recipientId) return;
 
     final preview = trimmed.isEmpty ? 'You received a new message.' : trimmed;
 
     final notification = NotificationModel(
-      id: '', // Firestore will generate it
+      id: '',
       fromUserId: senderId,
       fromUserName: senderName,
-      title: 'New message from $senderName',
+      title: senderName.isEmpty
+          ? 'New message in SkillSwap'
+          : '$senderName sent you a message',
       body: preview.length > 80 ? '${preview.substring(0, 80)}…' : preview,
       type: NotificationType.message,
       timestamp: DateTime.now(),
-      relatedId: chatId, // so you can navigate to this chat later
+      relatedId: chatId,
     );
 
     try {
       await _notificationService.sendNotification(recipientId, notification);
-    } catch (e) {
-      // Don't blow up the whole send if notification fails.
-      // In a real app you'd log this.
+    } catch (_) {
+      // don't crash if notification fails
     }
   }
 
   /// Create a chat for a given post (or return the existing one)
   /// between the current user and the owner of the post.
-  ///
-  /// Returns the chatId to navigate to.
   Future<String> createOrGetChatForPost({
     required String currentUserId,
     required String otherUserId,
@@ -161,7 +158,6 @@ class ChatService {
   }) async {
     final chatsRef = _db.collection(chatsCollection);
 
-    // 1) Look for an existing chat with BOTH users and this postId
     final existing = await chatsRef
         .where('members', arrayContains: currentUserId)
         .where('postId', isEqualTo: postId)
@@ -171,12 +167,10 @@ class ChatService {
       final data = doc.data();
       final members = List<String>.from(data['members'] ?? []);
       if (members.contains(otherUserId)) {
-        // found a matching chat
         return doc.id;
       }
     }
 
-    // 2) If not found, create a new chat doc
     final now = Timestamp.now();
     final newChatRef = chatsRef.doc();
 
@@ -186,7 +180,6 @@ class ChatService {
       'lastMessageAt': now,
       'lastMessageSenderId': currentUserId,
       'postId': postId,
-      // keep in sync with Chat model defaults
       'swapStatus': SwapStatus.open.name,
       'swapMarkedByUserId': null,
     });
@@ -194,7 +187,20 @@ class ChatService {
     return newChatRef.id;
   }
 
-  /// Mark the chat as read for this user (used for chat-level unread lists).
+  /// Convenience wrapper used by FeedScreen.
+  Future<String> createOrGetChatBetweenUsers({
+    required String postId,
+    required String currentUserId,
+    required String otherUserId,
+  }) {
+    return createOrGetChatForPost(
+      currentUserId: currentUserId,
+      otherUserId: otherUserId,
+      postId: postId,
+    );
+  }
+
+  /// Mark the chat as read for this user.
   Future<void> markChatAsRead({
     required String chatId,
     required String userId,
@@ -203,9 +209,7 @@ class ChatService {
       await _db.collection(chatsCollection).doc(chatId).update({
         'unreadFor': FieldValue.arrayRemove([userId]),
       });
-    } catch (e) {
-      // optional: log for debugging
-    }
+    } catch (_) {}
   }
 
   /// Update the SkillSwap status for a chat (open/completed, etc).
@@ -216,16 +220,11 @@ class ChatService {
   }) async {
     try {
       final data = <String, dynamic>{'swapStatus': status.name};
-
-      // Optional: track which user marked it as done
       if (markedByUserId != null) {
         data['swapMarkedByUserId'] = markedByUserId;
       }
-
       await _db.collection(chatsCollection).doc(chatId).update(data);
-    } catch (e) {
-      // optional: log for debugging
-    }
+    } catch (_) {}
   }
 
   /// Update the swap status for a chat (e.g. mark as completed).
@@ -239,13 +238,10 @@ class ChatService {
         'swapStatus': status.name,
         'swapMarkedByUserId': markedByUserId,
       });
-    } catch (e) {
-      // optional: log error
-      // debugPrint('Failed to update swap status: $e');
-    }
+    } catch (_) {}
   }
 
-  /// Watch just the last message in a chat (for unread indicator).
+  /// Watch just the last message in a chat.
   Stream<ChatMessage?> watchLastMessage(String chatId) {
     return _db
         .collection(chatsCollection)
@@ -288,8 +284,23 @@ class ChatService {
     });
   }
 
-  /// Delete a single message from a chat.
-  /// Only the message sender should be allowed to delete their own messages.
+  /// Delete an entire chat (all messages + chat doc).
+  Future<void> deleteChat(String chatId) async {
+    final chatRef = _db.collection(chatsCollection).doc(chatId);
+    final messagesRef = chatRef.collection(messagesSubcollection);
+
+    final messagesSnap = await messagesRef.get();
+    final batch = _db.batch();
+
+    for (final doc in messagesSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    batch.delete(chatRef);
+    await batch.commit();
+  }
+
+  /// Delete a single message.
   Future<void> deleteMessage({
     required String chatId,
     required String messageId,
@@ -301,114 +312,5 @@ class ChatService {
         .doc(messageId);
 
     await msgRef.delete();
-
-    // Update the chat's lastMessage if we deleted the most recent one
-    final latestMessages = await _db
-        .collection(chatsCollection)
-        .doc(chatId)
-        .collection(messagesSubcollection)
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .get();
-
-    if (latestMessages.docs.isNotEmpty) {
-      final latestMsg = latestMessages.docs.first.data();
-      await _db.collection(chatsCollection).doc(chatId).update({
-        'lastMessage': latestMsg['text'] ?? '',
-        'lastMessageAt': latestMsg['createdAt'],
-        'lastMessageSenderId': latestMsg['senderId'],
-      });
-    } else {
-      // No messages left, reset the lastMessage fields
-      await _db.collection(chatsCollection).doc(chatId).update({
-        'lastMessage': '',
-        'lastMessageAt': Timestamp.now(),
-        'lastMessageSenderId': null,
-      });
-    }
-  }
-
-  /// Delete an entire chat thread and all its messages.
-  /// This will remove the chat document and all messages in the subcollection.
-  Future<void> deleteChat(String chatId) async {
-    final chatRef = _db.collection(chatsCollection).doc(chatId);
-    final messagesRef = chatRef.collection(messagesSubcollection);
-
-    // First, delete all messages in the subcollection
-    final messagesSnapshot = await messagesRef.get();
-    final batch = _db.batch();
-
-    for (final doc in messagesSnapshot.docs) {
-      batch.delete(doc.reference);
-    }
-
-    // Then delete the chat document itself
-    batch.delete(chatRef);
-
-    await batch.commit();
-  }
-
-  /// Check if a chat already exists between two users (regardless of postId).
-  /// Returns the existing chatId if found, null otherwise.
-  Future<String?> getExistingChatBetweenUsers({
-    required String userId1,
-    required String userId2,
-  }) async {
-    final chatsRef = _db.collection(chatsCollection);
-
-    // Query for chats that contain userId1
-    final existing = await chatsRef
-        .where('members', arrayContains: userId1)
-        .get();
-
-    for (final doc in existing.docs) {
-      final data = doc.data();
-      final members = List<String>.from(data['members'] ?? []);
-      if (members.contains(userId2)) {
-        // found a matching chat between the two users
-        return doc.id;
-      }
-    }
-
-    return null;
-  }
-
-  /// Create a chat for a given post (or return the existing one)
-  /// between the current user and the owner of the post.
-  /// This will return an existing chat if one already exists between the two users.
-  ///
-  /// Returns the chatId to navigate to.
-  Future<String> createOrGetChatBetweenUsers({
-    required String currentUserId,
-    required String otherUserId,
-    String? postId,
-  }) async {
-    // First check if there's already a chat between these two users
-    final existingChatId = await getExistingChatBetweenUsers(
-      userId1: currentUserId,
-      userId2: otherUserId,
-    );
-
-    if (existingChatId != null) {
-      return existingChatId;
-    }
-
-    // If not found, create a new chat doc
-    final chatsRef = _db.collection(chatsCollection);
-    final now = Timestamp.now();
-    final newChatRef = chatsRef.doc();
-
-    await newChatRef.set({
-      'members': [currentUserId, otherUserId],
-      'lastMessage': '',
-      'lastMessageAt': now,
-      'lastMessageSenderId': currentUserId,
-      'postId': postId,
-      // keep in sync with Chat model defaults
-      'swapStatus': SwapStatus.open.name,
-      'swapMarkedByUserId': null,
-    });
-
-    return newChatRef.id;
   }
 }

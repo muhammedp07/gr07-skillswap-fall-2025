@@ -1,18 +1,17 @@
-// lib/screens/chat/chat_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/screens/swap/schedule_swap_screen.dart';
 import 'package:gr07_skillswap/screens/swap/scheduled_swaps_screen.dart';
 
-import '../../models/chat_models.dart'
-    as chat_models; // 👈 Chat + SwapStatus + dummy data
+import '../../models/chat_models.dart' as chat_models; // Chat + SwapStatus
 import '../../models/notification_model.dart';
 import '../../services/chat_service.dart';
 import '../../services/notification_service.dart';
-import '../../services/review_service.dart'; // 👈 NEW
+import '../../services/review_service.dart';
 import '../../services/user_service.dart';
+import '../../services/video_call_service.dart';
 import '../profile/public_profile_screen.dart';
+import '../video/video_call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -35,7 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String get _currentUserId {
     final user = FirebaseAuth.instance.currentUser;
-    // Fallback to dummy id if somehow not logged in
+    // small fallback so chat still works if auth glitches
     return user?.uid ?? chat_models.dummyCurrentUserId;
   }
 
@@ -69,6 +68,52 @@ class _ChatScreenState extends State<ChatScreen> {
       recipientId: widget.otherUserId,
       text: text,
     );
+  }
+
+  /// Start (or reuse) a video call session for this chat and push the Zego call UI.
+  Future<void> _handleStartCall() async {
+    try {
+      // create or reuse active Firestore session
+      final session = await VideoCallService.instance.createOrGetActiveSession(
+        chatId: widget.chatId,
+        hostUserId: _currentUserId,
+      );
+
+      if (!mounted) return;
+
+      final user = FirebaseAuth.instance.currentUser;
+
+      // make sure userName is NEVER empty (Zego asserts on this)
+      String localUserName = (user?.displayName ?? '').trim();
+
+      if (localUserName.isEmpty) {
+        final emailPrefix = (user?.email ?? '').split('@').first;
+        localUserName = emailPrefix.isNotEmpty ? emailPrefix : 'SkillSwap user';
+      }
+
+      // use session id as room/call id for now, but keep sdkRoomId hook
+      String callId = (session.sdkRoomId ?? session.id).trim();
+      if (callId.isEmpty) {
+        callId = session.id;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VideoCallScreen(
+            sessionId: session.id,
+            callId: callId,
+            localUserId: _currentUserId,
+            localUserName: localUserName,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to start call: $e')));
+    }
   }
 
   /// Show confirmation dialog to delete the entire chat thread
@@ -185,7 +230,6 @@ class _ChatScreenState extends State<ChatScreen> {
               setModalState(() => isSaving = true);
 
               try {
-                // 1) Save review
                 await ReviewService.instance.submitReview(
                   chatId: widget.chatId,
                   fromUserId: _currentUserId,
@@ -194,7 +238,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   comment: commentController.text,
                 );
 
-                // 2) Mark swap as completed on the chat
                 await ChatService.instance.updateSwapStatus(
                   chatId: widget.chatId,
                   status: chat_models.SwapStatus.completed,
@@ -234,8 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 if (!mounted) return;
 
-                Navigator.of(ctx).pop(); // close bottom sheet
-
+                Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Swap marked as done and review submitted.'),
@@ -291,8 +333,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // ⭐ Rating row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (index) {
@@ -311,10 +351,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       );
                     }),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Optional comment
                   TextField(
                     controller: commentController,
                     maxLines: 3,
@@ -336,10 +373,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Buttons
                   Row(
                     children: [
                       Expanded(
@@ -395,7 +429,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🧠 Outer stream: watch the chat itself for swapStatus changes
     return StreamBuilder<chat_models.Chat?>(
       stream: ChatService.instance.watchChat(widget.chatId),
       builder: (context, chatSnap) {
@@ -409,9 +442,8 @@ class _ChatScreenState extends State<ChatScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => PublicProfileScreen(
-                      userId: widget.otherUserId,
-                    ),
+                    builder: (_) =>
+                        PublicProfileScreen(userId: widget.otherUserId),
                   ),
                 );
               },
@@ -447,6 +479,10 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.videocam),
+                onPressed: _handleStartCall,
+              ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
                 itemBuilder: (context) => [
@@ -461,7 +497,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'view_schedules',
                     child: Row(
                       children: [
@@ -471,9 +507,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ],
                     ),
                   ),
-                  // Divider
                   const PopupMenuDivider(),
-                  // Status action
                   if (chat != null && !isCompleted)
                     const PopupMenuItem(
                       value: 'mark_done',
@@ -485,7 +519,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         ],
                       ),
                     ),
-                  // Delete option
                   const PopupMenuItem(
                     value: 'delete_chat',
                     child: Row(
@@ -517,7 +550,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: StreamBuilder<List<chat_models.ChatMessage>>(
                   stream: ChatService.instance.watchMessages(widget.chatId),
                   builder: (context, snapshot) {
-                    // When messages arrive, mark the latest incoming one as read
                     List<chat_models.ChatMessage> messages = [];
 
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
@@ -537,10 +569,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     } else if (snapshot.connectionState ==
                             ConnectionState.waiting &&
                         !snapshot.hasData) {
-                      // first load
                       return const Center(child: CircularProgressIndicator());
                     } else {
-                      // no Firestore messages yet -> fall back to dummy (preview only)
                       messages =
                           chat_models.dummyMessagesByChatId[widget.chatId] ??
                           [];
@@ -650,7 +680,7 @@ class _ChatScreenState extends State<ChatScreen> {
           postId: 'from_chat_${widget.chatId}',
           chatId: widget.chatId,
           otherUserId: widget.otherUserId,
-          otherUserName: widget.otherUserName, // Use the actual name
+          otherUserName: widget.otherUserName,
         ),
       ),
     );
@@ -663,7 +693,7 @@ class _ChatScreenState extends State<ChatScreen> {
         builder: (_) => ScheduledSwapsScreen(
           chatId: widget.chatId,
           otherUserId: widget.otherUserId,
-          otherUserName: widget.otherUserName, // Use the actual name
+          otherUserName: widget.otherUserName,
         ),
       ),
     );
