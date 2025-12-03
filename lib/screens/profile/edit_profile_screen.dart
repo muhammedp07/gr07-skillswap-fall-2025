@@ -26,6 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   File? _selectedImage;
   bool _isUploading = false;
+  bool _removePhoto = false;
 
   List<SkillEntry> skillsTeach = [];
   List<SkillEntry> skillsLearn = [];
@@ -51,8 +52,84 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF151936),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Choose Profile Photo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: Icon(Icons.camera_alt, color: Colors.white),
+                ),
+                title: const Text(
+                  'Take a Photo',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImageFromSource(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.green,
+                  child: Icon(Icons.photo_library, color: Colors.white),
+                ),
+                title: const Text(
+                  'Choose from Gallery',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImageFromSource(ImageSource.gallery);
+                },
+              ),
+              if (_selectedImage != null ||
+                  (widget.currentProfile.profileImageUrl != null && !_removePhoto))
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.delete, color: Colors.white),
+                  ),
+                  title: const Text(
+                    'Remove Photo',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _selectedImage = null;
+                      _removePhoto = true;
+                    });
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 512,
       maxHeight: 512,
       imageQuality: 75,
@@ -61,6 +138,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
+        _removePhoto = false;
       });
     }
   }
@@ -97,10 +175,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       backgroundColor: Colors.blueAccent,
                       backgroundImage: _selectedImage != null
                           ? FileImage(_selectedImage!)
-                          : (widget.currentProfile.profileImageUrl != null
+                          : (!_removePhoto && widget.currentProfile.profileImageUrl != null
                               ? NetworkImage(widget.currentProfile.profileImageUrl!)
                               : null) as ImageProvider?,
-                      child: (_selectedImage == null && widget.currentProfile.profileImageUrl == null)
+                      child: (_selectedImage == null && (_removePhoto || widget.currentProfile.profileImageUrl == null))
                           ? const Icon(Icons.person, size: 60, color: Colors.white)
                           : null,
                     ),
@@ -264,6 +342,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       String? imageUrl = widget.currentProfile.profileImageUrl;
+
+      // Handle photo removal
+      if (_removePhoto) {
+        imageUrl = null;
+      }
 
       // Upload new image if selected
       if (_selectedImage != null) {
