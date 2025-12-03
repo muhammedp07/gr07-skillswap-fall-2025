@@ -9,6 +9,7 @@ import '../../models/chat_models.dart' as chat_models;
 import '../../services/chat_service.dart';
 import '../../services/review_service.dart';
 import '../../services/video_call_service.dart';
+import '../video/video_call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -58,23 +59,26 @@ class _ChatScreenState extends State<ChatScreen> {
   /// 🎥 Start a video call session for this chat.
   Future<void> _handleStartCall() async {
     try {
+      // 1) Create a Firestore session row
       final session = await VideoCallService.instance.createSession(
         chatId: widget.chatId,
         hostUserId: _currentUserId,
-        // sdkRoomId will be wired to Zego in the next step
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Video call session ready (id: ${session.id.substring(0, 6)}...)',
+      // 2) Jump into the Zego call screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VideoCallScreen(
+            callId: session.id, // use session id as the Zego callID
+            localUserId: _currentUserId,
+            localUserName: 'User ${_currentUserId.substring(0, 4)}',
+            // later we can swap this for real display name
           ),
         ),
       );
-
-      // TODO: next step -> navigate to video call UI with [session].
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
