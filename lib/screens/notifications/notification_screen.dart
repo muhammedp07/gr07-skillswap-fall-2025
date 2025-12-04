@@ -108,6 +108,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           switch (notif.type) {
             case NotificationType.message:
+            case NotificationType
+                .incomingCall: // NEW – go to the chat for calls
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ChatScreen(
@@ -168,6 +170,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Colors.amber;
       case NotificationType.reviewReminder:
         return Colors.purple;
+      case NotificationType.incomingCall: // NEW
+        return Colors.redAccent;
     }
   }
 
@@ -185,6 +189,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Icons.schedule;
       case NotificationType.reviewReminder:
         return Icons.star;
+      case NotificationType.incomingCall: // NEW
+        return Icons.videocam;
     }
   }
 }

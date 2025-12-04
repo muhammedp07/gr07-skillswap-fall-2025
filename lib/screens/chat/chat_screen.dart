@@ -71,9 +71,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   /// Start (or reuse) a video call session for this chat and push the Zego call UI.
+  /// Start (or reuse) a video call session for this chat and push the Zego call UI.
   Future<void> _handleStartCall() async {
     try {
-      // create or reuse active Firestore session
+      // 1) Create or reuse an active Firestore session
       final session = await VideoCallService.instance.createOrGetActiveSession(
         chatId: widget.chatId,
         hostUserId: _currentUserId,
@@ -83,7 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
 
-      // make sure userName is NEVER empty (Zego asserts on this)
+      // 2) Make sure userName is NEVER empty (Zego asserts on this)
       String localUserName = (user?.displayName ?? '').trim();
 
       if (localUserName.isEmpty) {
@@ -91,12 +92,44 @@ class _ChatScreenState extends State<ChatScreen> {
         localUserName = emailPrefix.isNotEmpty ? emailPrefix : 'SkillSwap user';
       }
 
-      // use session id as room/call id for now, but keep sdkRoomId hook
+      // 3) Use session id as room/call id for now, but keep sdkRoomId hook
       String callId = (session.sdkRoomId ?? session.id).trim();
       if (callId.isEmpty) {
         callId = session.id;
       }
 
+      // 4) Send an "incoming call" notification to the other user
+      String callerName = 'Someone';
+      try {
+        final userProfile = await UserService().getCurrentUserProfile();
+        if (userProfile != null && userProfile.name.isNotEmpty) {
+          callerName = userProfile.name;
+        }
+      } catch (_) {
+        // If profile lookup fails, fallback to 'Someone'
+      }
+
+      final notification = NotificationModel(
+        id: '',
+        fromUserId: _currentUserId,
+        fromUserName: callerName,
+        title: '$callerName is calling you',
+        body: 'Tap to open your SkillSwap chat and join the video call.',
+        type: NotificationType.incomingCall,
+        timestamp: DateTime.now(),
+        relatedId: widget.chatId, // so backend / navigation can use the chat
+      );
+
+      try {
+        await NotificationService().sendNotification(
+          widget.otherUserId,
+          notification,
+        );
+      } catch (_) {
+        // Don't block the call UI if notification fails
+      }
+
+      // 5) Navigate to the call UI for the caller
       Navigator.push(
         context,
         MaterialPageRoute(
