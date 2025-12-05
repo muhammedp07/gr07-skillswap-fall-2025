@@ -46,8 +46,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Notifications")),
+      appBar: AppBar(title: Text("Notifications", style: theme.appBarTheme.titleTextStyle)),
       body: StreamBuilder<List<NotificationModel>>(
         stream: _controller.myNotifications,
         builder: (context, snapshot) {
@@ -56,14 +57,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No notifications yet."));
+            return Center(child: Text("No notifications yet.", style: theme.textTheme.bodyMedium));
           }
 
           final notifications = snapshot.data!;
 
           return ListView.separated(
             itemCount: notifications.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
+            separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerColor),
             itemBuilder: (context, index) {
               final notification = notifications[index];
               return _buildNotificationTile(context, notification);
@@ -75,27 +76,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Widget _buildNotificationTile(BuildContext context, NotificationModel notif) {
+    final theme = Theme.of(context);
     return Container(
-      color: notif.isRead ? Colors.transparent : Colors.blue.withOpacity(0.05),
+      color: notif.isRead ? Colors.transparent : theme.colorScheme.primary.withOpacity(0.05),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _getTypeColor(notif.type),
-          child: Icon(_getTypeIcon(notif.type), color: Colors.white),
+          backgroundColor: _getTypeColor(context, notif.type),
+          child: Icon(_getTypeIcon(notif.type), color: theme.colorScheme.onPrimary),
         ),
         title: Text(
           notif.title,
           style: TextStyle(
             fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+            color: theme.textTheme.bodyLarge?.color,
           ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(notif.body),
+            Text(notif.body, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 4),
             Text(
               DateFormat('MMM d, h:mm a').format(notif.timestamp),
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: theme.textTheme.bodySmall,
             ),
           ],
         ),
@@ -154,20 +157,21 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Color _getTypeColor(NotificationType type) {
+  Color _getTypeColor(BuildContext context, NotificationType type) {
+    final theme = Theme.of(context);
     switch (type) {
       case NotificationType.message:
-        return Colors.blue;
+        return theme.colorScheme.primary;
       case NotificationType.swapRequest:
-        return Colors.orange;
+        return theme.colorScheme.secondary;
       case NotificationType.swapAccepted:
-        return Colors.green;
+        return theme.colorScheme.primaryContainer;
       case NotificationType.swapCompleted:
-        return Colors.teal;
+        return theme.colorScheme.secondaryContainer;
       case NotificationType.swapReminder:
-        return Colors.amber;
+        return theme.colorScheme.primary.withOpacity(0.75);
       case NotificationType.reviewReminder:
-        return Colors.purple;
+        return theme.colorScheme.secondary.withOpacity(0.75);
     }
   }
 

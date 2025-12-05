@@ -218,7 +218,7 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Search Bar
@@ -235,6 +235,7 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Widget _buildSearchBar() {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: TextField(
@@ -244,13 +245,13 @@ class _FeedScreenState extends State<FeedScreen> {
             _searchQuery = value;
           });
         },
-        style: const TextStyle(color: Colors.white),
+        style: theme.textTheme.bodyMedium,
         decoration: InputDecoration(
           hintText: "Search skills, names, majors...",
-          hintStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: const Icon(Icons.search, color: Colors.white70),
+          hintStyle: theme.textTheme.bodySmall,
+          prefixIcon: Icon(Icons.search, color: theme.iconTheme.color),
           filled: true,
-          fillColor: const Color(0xFF1A1D36),
+          fillColor: theme.colorScheme.surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(25),
             borderSide: BorderSide.none,
@@ -289,12 +290,13 @@ class _FeedScreenState extends State<FeedScreen> {
           matchCount = _calculateFilterMatchCount(posts, value);
         }
 
+        final theme = Theme.of(context);
         return Padding(
           padding: const EdgeInsets.only(right: 8.0, top: 8.0),
           child: ChoiceChip(
             label: matchCount > 0 ? Text('$label ($matchCount)') : Text(label),
             labelStyle: TextStyle(
-              color: _selectedFilter == value ? Colors.white : Colors.white70,
+              color: _selectedFilter == value ? theme.colorScheme.onPrimary : theme.textTheme.bodySmall?.color,
             ),
             selected: _selectedFilter == value,
             onSelected: (selected) {
@@ -302,8 +304,8 @@ class _FeedScreenState extends State<FeedScreen> {
                 _selectedFilter = value;
               });
             },
-            backgroundColor: const Color(0xFF1A1D36),
-            selectedColor: Colors.blue,
+            backgroundColor: theme.colorScheme.surface,
+            selectedColor: theme.colorScheme.primary,
           ),
         );
       },
@@ -344,6 +346,7 @@ class _FeedScreenState extends State<FeedScreen> {
         // Always apply smart sorting (smart feed is always on)
         final sortedPosts = _sortPostsByRelevance(filteredPosts);
 
+        final theme = Theme.of(context);
         if (sortedPosts.isEmpty) {
           return Center(
             child: Padding(
@@ -372,28 +375,21 @@ class _FeedScreenState extends State<FeedScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1D36),
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.group, size: 64, color: Colors.blue),
+                          Icon(Icons.group, size: 64, color: theme.colorScheme.primary),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'No posts yet',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Be the first to create a skill swap post and start connecting with other students!',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
+                            style: theme.textTheme.bodySmall,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 20),
@@ -401,11 +397,11 @@ class _FeedScreenState extends State<FeedScreen> {
                             onPressed: () {
                               _navigateToCreatePost();
                             },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create First Post'),
+                            icon: Icon(Icons.add, color: theme.colorScheme.onPrimary),
+                            label: Text('Create First Post', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onPrimary)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 12,
@@ -422,13 +418,13 @@ class _FeedScreenState extends State<FeedScreen> {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: sortedPosts.length,
-          itemBuilder: (context, index) {
-            return _buildPostCard(sortedPosts[index]);
-          },
-        );
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: sortedPosts.length,
+              itemBuilder: (context, index) {
+                return _buildPostCard(sortedPosts[index]);
+              },
+            );
       },
     );
   }
@@ -506,6 +502,7 @@ class _FeedScreenState extends State<FeedScreen> {
       badgeColor = Colors.orange;
     }
 
+    final theme = Theme.of(context);
     return InkWell(
       onTap: () {
         Navigator.of(
@@ -513,7 +510,7 @@ class _FeedScreenState extends State<FeedScreen> {
         ).push(MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
       },
       child: Card(
-        color: const Color(0xFF1A1D36),
+        color: theme.colorScheme.surface,
         margin: const EdgeInsets.only(bottom: 16),
         // NEW: Highlight border for new matches
         shape: isNewMatch
@@ -533,13 +530,13 @@ class _FeedScreenState extends State<FeedScreen> {
               // User Info with relevance badge
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    child: Text(
-                      post.userName[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
+                    CircleAvatar(
+                      backgroundColor: theme.colorScheme.primary,
+                      child: Text(
+                        post.userName[0].toUpperCase(),
+                        style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.onPrimary),
+                      ),
                     ),
-                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -547,29 +544,26 @@ class _FeedScreenState extends State<FeedScreen> {
                       children: [
                         Text(
                           post.userName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         Text(
                           post.userMajor,
-                          style: const TextStyle(color: Colors.white70),
+                          style: theme.textTheme.bodySmall,
                         ),
                       ],
                     ),
                   ),
                   if (isNewMatch)
-                    const Icon(Icons.fiber_new, color: Colors.green, size: 20),
+                    Icon(Icons.fiber_new, color: Colors.green, size: 20),
 
                   StreamBuilder<bool>(
                     stream: _bookmarkService.isBookmarkedStream(currentUserId, post.id),
                     builder: (context, snapshot) {
                       final isBookmarked = snapshot.data ?? false;
-                      return IconButton(
+                        return IconButton(
                         icon: Icon(
                           isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: isBookmarked ? Colors.blue : Colors.white70,
+                          color: isBookmarked ? theme.colorScheme.primary : theme.iconTheme.color,
                         ),
                         onPressed: () {
                           _bookmarkService.toggleBookmark(currentUserId, post.id);
@@ -590,11 +584,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       ),
                       child: Text(
                         relevanceBadge,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   if (matchScore > 0 && relevanceBadge == null)
@@ -609,10 +599,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       ),
                       child: Text(
                         '$matchScore match${matchScore > 1 ? 'es' : ''}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.white),
                       ),
                     ),
                 ],
@@ -629,25 +616,22 @@ class _FeedScreenState extends State<FeedScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Wants to Learn:",
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style: theme.textTheme.bodySmall,
                         ),
                         const SizedBox(height: 4),
                         Wrap(
                           spacing: 6,
                           runSpacing: 4,
-                          children: post.skillsLearn
+                                children: post.skillsLearn
                               .map(
                                 (skill) => Chip(
                                   label: Text(
                                     skill.displaySkill,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
                                   ),
-                                  backgroundColor: Colors.red.withOpacity(0.3),
+                                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
@@ -665,27 +649,22 @@ class _FeedScreenState extends State<FeedScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Can Teach:",
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style: theme.textTheme.bodySmall,
                         ),
                         const SizedBox(height: 4),
                         Wrap(
                           spacing: 6,
                           runSpacing: 4,
-                          children: post.skillsTeach
+                                children: post.skillsTeach
                               .map(
                                 (skill) => Chip(
                                   label: Text(
                                     skill.displaySkill,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
                                   ),
-                                  backgroundColor: Colors.green.withOpacity(
-                                    0.3,
-                                  ),
+                                  backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),

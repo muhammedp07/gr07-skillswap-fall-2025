@@ -11,10 +11,7 @@ class CreatePostScreen extends StatefulWidget {
   final Function(int)? onTabChange;
   final GlobalKey<CreatePostScreenState>? key;
 
-  const CreatePostScreen({
-    this.key,
-    this.onTabChange,
-  }) : super(key: key);
+  const CreatePostScreen({this.key, this.onTabChange}) : super(key: key);
 
   @override
   CreatePostScreenState createState() => CreatePostScreenState();
@@ -58,7 +55,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _currentUserProfile == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -68,16 +65,23 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                 children: [
                   // User Info Card
                   Card(
-                    color: const Color(0xFF1A1D36),
+                    color: Theme.of(context).colorScheme.surface,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
                             child: Text(
                               _currentUserProfile!.name[0].toUpperCase(),
-                              style: const TextStyle(color: Colors.white),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -87,14 +91,12 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                               children: [
                                 Text(
                                   _currentUserProfile!.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                                 Text(
                                   _currentUserProfile!.major,
-                                  style: const TextStyle(color: Colors.white70),
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
@@ -107,18 +109,24 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                   const SizedBox(height: 24),
 
                   // Skills I Can Teach Section
-                  const Text(
+                  Text(
                     "Skills I Can TEACH in this swap",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground, // Add this
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     "Select from your teaching skills",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground, // Add this
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildSkillChips(
@@ -130,11 +138,9 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                   const SizedBox(height: 28),
 
                   // Skills I Want to Learn Section
-                  const Text(
+                  Text(
                     "Skills I Want to LEARN in this swap",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -153,21 +159,25 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                   const SizedBox(height: 28),
 
                   // Description (Optional)
-                  const Text(
+                  Text(
                     "Description (Optional)",
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface, // Add this
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _descriptionController,
                     maxLines: 3,
-                    style: const TextStyle(color: Colors.white),
+                    style: Theme.of(context).textTheme.bodyMedium,
                     decoration: InputDecoration(
                       hintText:
                           "Add any details about your teaching style, learning goals, etc...",
-                      hintStyle: const TextStyle(color: Colors.white54),
+                      hintStyle: Theme.of(context).textTheme.bodySmall,
                       filled: true,
-                      fillColor: const Color(0xFF1A1D36),
+                      fillColor: Theme.of(context).colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -177,19 +187,23 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                   const SizedBox(height: 20),
 
                   // Availability (Optional)
-                  const Text(
+                  Text(
                     "Availability (Optional)",
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface, // Add this
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _availabilityController,
-                    style: const TextStyle(color: Colors.white),
+                    style: Theme.of(context).textTheme.bodyMedium,
                     decoration: InputDecoration(
                       hintText: "e.g., Weekdays after 5 PM, Weekends flexible",
-                      hintStyle: const TextStyle(color: Colors.white54),
+                      hintStyle: Theme.of(context).textTheme.bodySmall,
                       filled: true,
-                      fillColor: const Color(0xFF1A1D36),
+                      fillColor: Theme.of(context).colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -204,24 +218,31 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : submitPost,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             )
-                          : const Text(
+                          : Text(
                               "Create Post",
-                              style: TextStyle(fontSize: 16),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary, // Explicitly set text color
+                                    fontWeight: FontWeight
+                                        .w600, // Add some weight for better readability
+                                  ),
                             ),
                     ),
                   ),
@@ -255,7 +276,11 @@ class CreatePostScreenState extends State<CreatePostScreen> {
           isTeachSection
               ? "No teaching skills in your profile. Add skills in your profile settings."
               : "No learning skills in your profile. Add skills in your profile settings.",
-          style: const TextStyle(color: Colors.white70),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(
+              0.7,
+            ), // Changed from Colors.white70
+          ),
           textAlign: TextAlign.center,
         ),
       );
@@ -294,15 +319,18 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                 },
           backgroundColor: Colors.grey.withOpacity(0.2),
           selectedColor: isTeachSection
-              ? Colors.green.withOpacity(0.3)
-              : Colors.orange.withOpacity(0.3),
+              ? const Color.fromARGB(255, 20, 234, 28).withOpacity(0.6)
+              : const Color.fromARGB(255, 233, 125, 2).withOpacity(0.6),
           disabledColor: Colors.grey.withOpacity(0.1),
           labelStyle: TextStyle(
             color: isDisabled
-                ? Colors.white38
+                ? Colors
+                      .grey // Changed from Colors.white38
                 : isSelected
-                    ? Colors.white
-                    : Colors.white70,
+                ? Colors.white
+                : Theme.of(
+                    context,
+                  ).colorScheme.onSurface, // Changed from Colors.white70
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
           checkmarkColor: Colors.white,
@@ -311,7 +339,9 @@ class CreatePostScreenState extends State<CreatePostScreen> {
             side: BorderSide(
               color: isSelected
                   ? (isTeachSection ? Colors.green : Colors.orange)
-                  : Colors.white24,
+                  : Theme.of(
+                      context,
+                    ).colorScheme.outline, // Changed from Colors.white24
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -376,7 +406,6 @@ class CreatePostScreenState extends State<CreatePostScreen> {
 
       // Navigate to feed tab after successful post creation
       _navigateToFeed();
-
     } catch (e) {
       if (!mounted) return;
       _showError("Failed to create post. Please try again.");
@@ -405,8 +434,12 @@ class CreatePostScreenState extends State<CreatePostScreen> {
     }
 
     // Remove skills that are now in the opposite category
-    updatedTeachSkills.removeWhere((skill) => _selectedLearnSkills.contains(skill));
-    updatedLearnSkills.removeWhere((skill) => _selectedTeachSkills.contains(skill));
+    updatedTeachSkills.removeWhere(
+      (skill) => _selectedLearnSkills.contains(skill),
+    );
+    updatedLearnSkills.removeWhere(
+      (skill) => _selectedTeachSkills.contains(skill),
+    );
 
     final updatedProfile = UserProfile(
       uid: _currentUserProfile!.uid,
@@ -438,7 +471,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message), 
+        content: Text(message),
         backgroundColor: Colors.redAccent,
         duration: const Duration(seconds: 3),
       ),

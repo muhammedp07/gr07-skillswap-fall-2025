@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gr07_skillswap/utils/navigation_utils.dart';
+import '../../utils/theme_manager.dart';
 
 import '../feed/feed_screen.dart';
 import '../feed/create_post_screen.dart';
@@ -58,14 +59,16 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        elevation: 0,
+        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
+        elevation: theme.appBarTheme.elevation ?? 0,
         title: Text(
           _pageTitles[_currentIndex],
-          style: const TextStyle(color: Colors.white),
+          style: theme.textTheme.titleLarge,
         ),
         actions: [
           // Notification bell with badge (from main)
@@ -76,9 +79,9 @@ class HomeScreenState extends State<HomeScreen> {
               return Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.notifications_outlined,
-                      color: Colors.white,
+                      color: theme.iconTheme.color ?? theme.colorScheme.onBackground,
                     ),
                     tooltip: "Notifications",
                     onPressed: () {
@@ -96,18 +99,18 @@ class HomeScreenState extends State<HomeScreen> {
                       top: 8,
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: BoxDecoration(
+                            color: theme.colorScheme.error,
+                            shape: BoxShape.circle,
+                          ),
                         constraints: const BoxConstraints(
                           minWidth: 16,
                           minHeight: 16,
                         ),
                         child: Text(
                           unreadCount > 9 ? '9+' : unreadCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: theme.colorScheme.onError,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -119,15 +122,31 @@ class HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+
+          // Theme toggle
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeManager.themeNotifier,
+            builder: (context, mode, _) {
+              final isDark = mode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: Theme.of(context).iconTheme.color),
+                tooltip: isDark ? 'Switch to light' : 'Switch to dark',
+                onPressed: () {
+                  ThemeManager.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
+                },
+              );
+            },
+          ),
+
           if (_currentIndex == 0 || _currentIndex == 3)
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.redAccent),
+              icon: Icon(Icons.logout, color: theme.colorScheme.error),
               tooltip: "Log out",
               onPressed: () => _confirmLogout(context),
             ),
           if (_currentIndex == 1)
             IconButton(
-              icon: const Icon(Icons.check, color: Colors.green),
+              icon: Icon(Icons.check, color: theme.colorScheme.secondary),
               tooltip: "Submit Post",
               onPressed: _submitPostFromAppBar,
             ),
@@ -135,9 +154,9 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF1A1D36),
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.white54,
+        backgroundColor: theme.colorScheme.surface,
+        selectedItemColor: theme.colorScheme.primary,
+        unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.6),
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -171,21 +190,22 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _confirmLogout(BuildContext context) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1D36),
-        title: const Text("Log Out", style: TextStyle(color: Colors.white)),
-        content: const Text(
+        backgroundColor: theme.cardColor,
+        title: Text("Log Out", style: theme.textTheme.titleLarge),
+        content: Text(
           "Are you sure you want to log out?",
-          style: TextStyle(color: Colors.white70),
+          style: theme.textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               "Cancel",
-              style: TextStyle(color: Colors.white70),
+              style: theme.textTheme.bodyMedium,
             ),
           ),
           TextButton(
@@ -193,28 +213,29 @@ class HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context);
               await NavigationUtils.logout(context);
             },
-            child: const Text("Log Out", style: TextStyle(color: Colors.red)),
+            child: Text("Log Out", style: TextStyle(color: theme.colorScheme.error)),
           ),
         ],
       ),
     );
   }
 
-  static Widget _buildPlaceholderPage(String title, IconData icon) {
+  static Widget _buildPlaceholderPage(BuildContext context, String title, IconData icon) {
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Colors.white38),
+          Icon(icon, size: 64, color: theme.iconTheme.color?.withOpacity(0.4)),
           const SizedBox(height: 16),
           Text(
             "$title Page",
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
+            style: theme.textTheme.titleMedium?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8), fontSize: 18),
           ),
           const SizedBox(height: 8),
           Text(
             "Coming Soon",
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodySmall?.color?.withOpacity(0.6), fontSize: 14),
           ),
         ],
       ),

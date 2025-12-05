@@ -84,16 +84,18 @@ class PostDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final mainSkill = _buildMainSkill();
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        elevation: 0,
-        title: const Text(
+        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
+        elevation: theme.appBarTheme.elevation ?? 0,
+        title: Text(
           'Swap Details',
-          style: TextStyle(color: Colors.white),
+          style: theme.textTheme.titleLarge,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: theme.iconTheme,
       ),
       body: Column(
         children: [
@@ -113,7 +115,7 @@ class PostDetailScreen extends StatelessWidget {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF151936),
+                            color: theme.cardColor,
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: Row(
@@ -181,16 +183,12 @@ class PostDetailScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF151936),
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       mainSkill,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
 
@@ -203,21 +201,24 @@ class PostDetailScreen extends StatelessWidget {
                     children: [
                       ...post.skillsTeach.map(
                         (skill) => _buildPillChip(
+                          context: context,
                           label: 'Offers: ${skill.displaySkill}',
-                          background: const Color(0xFF1F2A5A),
+                          background: theme.colorScheme.primaryContainer,
                         ),
                       ),
                       ...post.skillsLearn.map(
                         (skill) => _buildPillChip(
+                          context: context,
                           label: 'Wants: ${skill.displaySkill}',
-                          background: const Color(0xFF264C5E),
+                          background: theme.colorScheme.secondaryContainer,
                         ),
                       ),
                       if (post.availability != null &&
                           post.availability!.isNotEmpty)
                         _buildPillChip(
+                          context: context,
                           label: 'Availability: ${post.availability!}',
-                          background: const Color(0xFF2F2345),
+                          background: theme.colorScheme.surfaceVariant,
                         ),
                     ],
                   ),
@@ -225,13 +226,9 @@ class PostDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Description
-                  const Text(
+                  Text(
                     'Description',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -239,11 +236,7 @@ class PostDetailScreen extends StatelessWidget {
                             post.description!.trim().isNotEmpty)
                         ? post.description!
                         : 'No description added yet.',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
                   ),
                 ],
               ),
@@ -258,14 +251,14 @@ class PostDetailScreen extends StatelessWidget {
                 horizontal: 16.0,
                 vertical: 12.0,
               ),
-              color: const Color(0xFF0E1126),
+              color: theme.scaffoldBackgroundColor,
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => _startChatFromDetail(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
@@ -273,10 +266,7 @@ class PostDetailScreen extends StatelessWidget {
                   ),
                   child: Text(
                     'Message ${post.userName.split(' ').first}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -287,7 +277,9 @@ class PostDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPillChip({required String label, required Color background}) {
+  Widget _buildPillChip({required BuildContext context, required String label, required Color background}) {
+    final theme = Theme.of(context);
+    final onBackgroundColor = theme.colorScheme.onSurface;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -296,7 +288,7 @@ class PostDetailScreen extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: theme.textTheme.bodySmall?.copyWith(color: onBackgroundColor, fontSize: 13),
       ),
     );
   }
@@ -320,8 +312,8 @@ class PostDetailScreen extends StatelessWidget {
           children: [
             const Icon(Icons.star, color: Colors.amber, size: 18),
             const SizedBox(width: 4),
-            Text(
-              summary!.average.toStringAsFixed(1),
+              Text(
+                summary.average.toStringAsFixed(1),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -346,6 +338,7 @@ class PostDetailScreen extends StatelessWidget {
       );
     }
 
+    final theme = Theme.of(context);
     return Row(
       children: [
         CircleAvatar(
@@ -355,13 +348,13 @@ class PostDetailScreen extends StatelessWidget {
                   profile.profileImageUrl!.isNotEmpty)
               ? NetworkImage(profile.profileImageUrl!)
               : null,
-          child:
+            child:
               (profile.profileImageUrl == null ||
-                  profile.profileImageUrl!.isEmpty)
+                profile.profileImageUrl!.isEmpty)
               ? Text(
-                  profile.name.isNotEmpty ? profile.name[0].toUpperCase() : '?',
-                  style: const TextStyle(fontSize: 28, color: Colors.white),
-                )
+                profile.name.isNotEmpty ? profile.name[0].toUpperCase() : '?',
+                style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.onSurface),
+              )
               : null,
         ),
         const SizedBox(width: 16),
@@ -370,19 +363,15 @@ class PostDetailScreen extends StatelessWidget {
           children: [
             Text(
               profile.name,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             Text(
               profile.major,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
             ),
-            const Text(
+            Text(
               "Member since 2023",
-              style: TextStyle(color: Colors.white38, fontSize: 12),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.textTheme.bodySmall?.color?.withOpacity(0.7)),
             ),
             const SizedBox(height: 6),
             ratingWidget,

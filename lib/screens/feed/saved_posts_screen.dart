@@ -18,11 +18,12 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: const Text('Saved Posts', style: TextStyle(color: Colors.white)),
+        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.primary,
+        title: Text('Saved Posts', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary)),
       ),
       body: StreamBuilder<List<Post>>(
         stream: _bookmarkService.getBookmarkedPosts(_currentUserId),
@@ -44,16 +45,16 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.bookmark_border, size: 64, color: Colors.white38),
+                  Icon(Icons.bookmark_border, size: 64, color: theme.iconTheme.color?.withOpacity(0.6)),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No saved posts yet',
-                    style: TextStyle(color: Colors.white70, fontSize: 18),
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Tap the bookmark icon on posts to save them for later',
-                    style: TextStyle(color: Colors.white38, fontSize: 14),
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.textTheme.bodySmall?.color?.withOpacity(0.8)),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -66,7 +67,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
             itemCount: posts.length,
             itemBuilder: (context, index) {
               final post = posts[index];
-              return _buildSavedPostCard(post);
+              return _buildSavedPostCard(post, theme);
             },
           );
         },
@@ -74,9 +75,9 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
     );
   }
 
-  Widget _buildSavedPostCard(Post post) {
+  Widget _buildSavedPostCard(Post post, ThemeData theme) {
     return Card(
-      color: const Color(0xFF1A1D36),
+      color: theme.cardColor,
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -87,10 +88,10 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: theme.colorScheme.primary,
                   child: Text(
                     post.userName[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
+                    style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -100,20 +101,17 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                     children: [
                       Text(
                         post.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       Text(
                         post.userMajor,
-                        style: const TextStyle(color: Colors.white70),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.bookmark, color: Colors.blue),
+                  icon: Icon(Icons.bookmark, color: theme.colorScheme.primary),
                   onPressed: () {
                     _bookmarkService.toggleBookmark(_currentUserId, post.id);
                   },
@@ -132,14 +130,14 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Wants to Learn:",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         post.skillsLearn.take(2).map((s) => s.displaySkill).join(', '),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        style: theme.textTheme.bodyMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -152,14 +150,14 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Can Teach:",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         post.skillsTeach.take(2).map((s) => s.displaySkill).join(', '),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        style: theme.textTheme.bodyMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -184,10 +182,10 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                   );
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                  side: const BorderSide(color: Colors.blue),
+                  foregroundColor: theme.colorScheme.primary,
+                  side: BorderSide(color: theme.colorScheme.primary),
                 ),
-                child: const Text('View Post'),
+                child: Text('View Post', style: theme.textTheme.bodyMedium),
               ),
             ),
           ],
