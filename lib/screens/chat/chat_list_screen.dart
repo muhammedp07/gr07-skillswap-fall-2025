@@ -28,16 +28,17 @@ class ChatListScreen extends StatelessWidget {
     final currentUserId = user?.uid ?? dummyCurrentUserId;
     final userService = UserService();
 
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               'Your conversations',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: theme.textTheme.bodySmall,
             ),
           ),
           const SizedBox(height: 8),
@@ -52,7 +53,7 @@ class ChatListScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         'Error loading messages:\n${snapshot.error}',
-                        style: const TextStyle(color: Colors.redAccent),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -70,10 +71,10 @@ class ChatListScreen extends StatelessWidget {
                     : dummyChats;
 
                 if (chats.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "No conversations yet.\nTap Message on a SkillSwap post to start one!",
-                      style: TextStyle(color: Colors.white70),
+                      style: theme.textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
                   );
@@ -81,8 +82,7 @@ class ChatListScreen extends StatelessWidget {
 
                 return ListView.separated(
                   itemCount: chats.length,
-                  separatorBuilder: (_, __) =>
-                      const Divider(color: Colors.white12, height: 1),
+                  separatorBuilder: (_, __) => Divider(color: theme.dividerColor, height: 1),
                   itemBuilder: (context, index) {
                     final chat = chats[index];
 
@@ -166,14 +166,12 @@ class ChatListScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.chat_bubble_outline),
+        backgroundColor: theme.colorScheme.primary,
+        child: Icon(Icons.chat_bubble_outline, color: theme.colorScheme.onPrimary),
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Start a chat by tapping Message on a SkillSwap post.',
-              ),
+            SnackBar(
+              content: Text('Start a chat by tapping Message on a SkillSwap post.', style: theme.textTheme.bodyMedium),
             ),
           );
         },
@@ -193,26 +191,23 @@ class ChatListScreen extends StatelessWidget {
   }) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
             ? NetworkImage(profileImageUrl)
             : null,
         child: (profileImageUrl == null || profileImageUrl.isEmpty)
-            ? Text(avatarLetter, style: const TextStyle(color: Colors.white))
+            ? Text(avatarLetter, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onPrimary))
             : null,
       ),
       title: Text(
         'Chat with $displayName',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         chat.lastMessage.isEmpty ? 'No messages yet' : chat.lastMessage,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: Colors.white70, fontSize: 13),
+        style: Theme.of(context).textTheme.bodySmall,
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -221,15 +216,15 @@ class ChatListScreen extends StatelessWidget {
             _formatTime(chat.lastMessageAt),
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.white60),
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.8)),
           ),
           if (hasUnread) ...[
             const SizedBox(height: 4),
             Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(
-                color: Colors.blueAccent,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
                 shape: BoxShape.circle,
               ),
             ),
