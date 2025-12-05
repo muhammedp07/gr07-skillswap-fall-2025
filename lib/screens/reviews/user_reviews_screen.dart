@@ -17,15 +17,13 @@ class UserReviewsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: Text(
-          'Reviews for $userName',
-          style: const TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text('Reviews for $userName', style: theme.appBarTheme.titleTextStyle),
+        iconTheme: theme.iconTheme,
       ),
       body: StreamBuilder<List<Review>>(
         stream: ReviewService.instance.watchReviewsForUser(userId),
@@ -37,10 +35,10 @@ class UserReviewsScreen extends StatelessWidget {
           final reviews = snap.data ?? [];
 
           if (reviews.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 'No reviews yet.',
-                style: TextStyle(color: Colors.white70),
+                style: theme.textTheme.bodyMedium,
               ),
             );
           }
@@ -48,30 +46,29 @@ class UserReviewsScreen extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: reviews.length,
-            separatorBuilder: (_, __) => const Divider(color: Colors.white10),
+            separatorBuilder: (_, __) => Divider(color: theme.dividerColor),
             itemBuilder: (context, index) {
               final r = reviews[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.blueGrey.shade700,
+                  backgroundColor: theme.colorScheme.primaryContainer,
                   child: Text(
                     r.rating.toString(),
-                    style: const TextStyle(color: Colors.white),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onPrimaryContainer),
                   ),
                 ),
                 title: Row(
                   children: [
                     ...List.generate(
                       r.rating,
-                      (_) =>
-                          const Icon(Icons.star, size: 16, color: Colors.amber),
+                      (_) => const Icon(Icons.star, size: 16, color: Colors.amber),
                     ),
                     ...List.generate(
                       5 - r.rating,
-                      (_) => const Icon(
+                      (_) => Icon(
                         Icons.star_border,
                         size: 16,
-                        color: Colors.white24,
+                        color: theme.iconTheme.color?.withOpacity(0.24),
                       ),
                     ),
                   ],
@@ -82,15 +79,12 @@ class UserReviewsScreen extends StatelessWidget {
                     if (r.comment != null && r.comment!.isNotEmpty)
                       Text(
                         r.comment!,
-                        style: const TextStyle(color: Colors.white70),
+                        style: theme.textTheme.bodyMedium,
                       ),
                     const SizedBox(height: 4),
                     Text(
                       r.createdAt.toLocal().toString(),
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                      ),
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),

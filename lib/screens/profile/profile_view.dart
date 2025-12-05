@@ -38,6 +38,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     // 1. Loading State
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -59,32 +60,28 @@ class _ProfileViewState extends State<ProfileView> {
       child: Column(
         children: [
           // Profile Image
-          CircleAvatar(
+            CircleAvatar(
             radius: 50,
-            backgroundColor: Colors.blueAccent,
+            backgroundColor: theme.colorScheme.primary,
             backgroundImage: _profile!.profileImageUrl != null
-                ? NetworkImage(_profile!.profileImageUrl!)
-                : null,
+              ? NetworkImage(_profile!.profileImageUrl!)
+              : null,
             child: _profile!.profileImageUrl == null
-                ? const Icon(Icons.person, size: 60, color: Colors.white)
-                : null,
-          ),
+              ? Icon(Icons.person, size: 60, color: theme.colorScheme.onPrimary)
+              : null,
+            ),
           const SizedBox(height: 16),
 
           // Name
           Text(
             _profile!.name,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
 
           // Major
           Text(
             _profile!.major,
-            style: const TextStyle(fontSize: 16, color: Colors.white70),
+            style: theme.textTheme.bodyMedium,
           ),
 
           // Bio
@@ -93,10 +90,10 @@ class _ProfileViewState extends State<ProfileView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                _profile!.bio!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.white60),
-              ),
+                  _profile!.bio!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
             ),
           ],
 
@@ -120,7 +117,7 @@ class _ProfileViewState extends State<ProfileView> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: theme.colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -138,14 +135,14 @@ class _ProfileViewState extends State<ProfileView> {
           ),
           const SizedBox(height: 32),
           
-          _buildSavedPostsSection(),
+          _buildSavedPostsSection(theme),
           const SizedBox(height: 32),
           // Skills I Can Teach Section
           _buildSkillSection(
             title: "Skills I Teach",
             skills: _profile!.skillsTeachDisplay,
-            color: Colors.grey.withOpacity(0.2),
-            textColor: Colors.grey.shade400,
+            color: theme.cardColor,
+            textColor: theme.textTheme.bodySmall?.color ?? Colors.grey.shade400,
           ),
 
           const SizedBox(height: 24),
@@ -154,8 +151,8 @@ class _ProfileViewState extends State<ProfileView> {
           _buildSkillSection(
             title: "Skills I Want To Learn",
             skills: _profile!.skillsLearnDisplay,
-            color: Colors.grey.withOpacity(0.2),
-            textColor: Colors.grey.shade400,
+            color: theme.cardColor,
+            textColor: theme.textTheme.bodySmall?.color ?? Colors.grey.shade400,
           ),
           const SizedBox(height: 20),
         ],
@@ -163,36 +160,32 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildSavedPostsSection() {
+  Widget _buildSavedPostsSection(ThemeData theme) {
     return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Saved Posts",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1D36),
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: ListTile(
-              leading: const Icon(Icons.bookmark, color: Colors.blue),
-              title: const Text(
+              leading: Icon(Icons.bookmark, color: theme.colorScheme.primary),
+              title: Text(
                 'View Saved Posts',
-                style: TextStyle(color: Colors.white),
+                style: theme.textTheme.bodyMedium,
               ),
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Colors.white70,
+                color: theme.textTheme.bodySmall?.color?.withOpacity(0.8),
               ),
               onTap: () {
                 Navigator.push(

@@ -75,11 +75,12 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: const Text('Leave a Review'),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text('Leave a Review', style: theme.appBarTheme.titleTextStyle),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -90,20 +91,16 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
             Center(
               child: Column(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 64),
+                  Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 64),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Swap Completed!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '${widget.otherUserName} marked this swap as complete',
-                    style: const TextStyle(color: Colors.white70, fontSize: 16),
+                    style: theme.textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -113,13 +110,9 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
             const SizedBox(height: 32),
 
             // Rating section
-            const Text(
+            Text(
               'How was your experience?',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
             Center(
@@ -135,7 +128,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                     iconSize: 40,
                     icon: Icon(
                       isSelected ? Icons.star : Icons.star_border,
-                      color: isSelected ? Colors.amber : Colors.grey,
+                      color: isSelected ? Colors.amber : theme.iconTheme.color?.withOpacity(0.6),
                     ),
                   );
                 }),
@@ -145,36 +138,31 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
             const SizedBox(height: 24),
 
             // Comment section
-            const Text(
+            Text(
               'Leave a comment (optional)',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _commentController,
               maxLines: 4,
-              style: const TextStyle(color: Colors.white),
+              style: theme.textTheme.bodyMedium,
               decoration: InputDecoration(
-                hintText:
-                    'Share your experience with ${widget.otherUserName}...',
-                hintStyle: const TextStyle(color: Colors.white54),
+                hintText: 'Share your experience with ${widget.otherUserName}...',
+                hintStyle: theme.textTheme.bodySmall,
                 filled: true,
-                fillColor: const Color(0xFF11152B),
+                fillColor: theme.colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white24),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white24),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue),
+                  borderSide: BorderSide(color: theme.colorScheme.primary),
                 ),
               ),
             ),
@@ -190,8 +178,8 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                         ? null
                         : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.white24),
+                        foregroundColor: theme.textTheme.bodyMedium?.color,
+                        side: BorderSide(color: theme.dividerColor),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -205,8 +193,8 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submitReview,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -218,7 +206,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                                valueColor: AlwaysStoppedAnimation(Colors.white),
                             ),
                           )
                         : const Text(

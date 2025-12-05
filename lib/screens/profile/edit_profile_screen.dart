@@ -54,7 +54,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickImage() async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF151936),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -64,62 +64,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Choose Profile Photo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.camera_alt, color: Colors.white),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.transparent,
+                  child: Icon(Icons.camera_alt, color: Theme.of(context).iconTheme.color),
                 ),
-                title: const Text(
-                  'Take a Photo',
-                  style: TextStyle(color: Colors.white),
-                ),
+                title: Text('Take a Photo', style: Theme.of(context).textTheme.bodyMedium),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImageFromSource(ImageSource.camera);
                 },
               ),
               ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.green,
-                  child: Icon(Icons.photo_library, color: Colors.white),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.transparent,
+                  child: Icon(Icons.photo_library, color: Theme.of(context).iconTheme.color),
                 ),
-                title: const Text(
-                  'Choose from Gallery',
-                  style: TextStyle(color: Colors.white),
-                ),
+                title: Text('Choose from Gallery', style: Theme.of(context).textTheme.bodyMedium),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImageFromSource(ImageSource.gallery);
                 },
               ),
-              if (_selectedImage != null ||
-                  (widget.currentProfile.profileImageUrl != null && !_removePhoto))
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.red,
-                    child: Icon(Icons.delete, color: Colors.white),
-                  ),
-                  title: const Text(
-                    'Remove Photo',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    setState(() {
-                      _selectedImage = null;
-                      _removePhoto = true;
-                    });
-                  },
-                ),
             ],
           ),
         ),
@@ -146,18 +117,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Edit Profile",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Text("Edit Profile", style: Theme.of(context).appBarTheme.titleTextStyle),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -172,14 +140,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   children: [
                     CircleAvatar(
                       radius: 60,
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       backgroundImage: _selectedImage != null
                           ? FileImage(_selectedImage!)
                           : (!_removePhoto && widget.currentProfile.profileImageUrl != null
                               ? NetworkImage(widget.currentProfile.profileImageUrl!)
                               : null) as ImageProvider?,
                       child: (_selectedImage == null && (_removePhoto || widget.currentProfile.profileImageUrl == null))
-                          ? const Icon(Icons.person, size: 60, color: Colors.white)
+                          ? Icon(Icons.person, size: 60, color: Theme.of(context).colorScheme.onPrimary)
                           : null,
                     ),
                     Positioned(
@@ -187,15 +155,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       right: 0,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 20,
-                          color: Colors.white,
-                        ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.camera_alt,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                       ),
                     ),
                   ],
@@ -203,29 +171,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 32),
+              Text("Your Name", style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 6),
+              _buildTextField(nameController, "Enter your name"),
 
-            const Text(
-              "Your Name",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 6),
-            _buildTextField(nameController, "Enter your name"),
+              const SizedBox(height: 20),
+              Text("Program / Major", style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 6),
+              _buildTextField(majorController, "e.g. Computer Science"),
 
-            const SizedBox(height: 20),
-            const Text(
-              "Program / Major",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 6),
-            _buildTextField(majorController, "e.g. Computer Science"),
-
-            const SizedBox(height: 20),
-            const Text(
-              "Bio (Optional)",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 6),
-            _buildBioField(),
+              const SizedBox(height: 20),
+              Text("Bio (Optional)", style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 6),
+              _buildBioField(),
 
             const SizedBox(height: 24),
             SkillSelectionWidget(
@@ -236,7 +194,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 });
               },
               title: "Skills you can TEACH",
-              chipColor: Colors.green.withOpacity(0.3),
+              chipColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
               excludedSkills: skillsLearn,
             ),
 
@@ -249,7 +207,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 });
               },
               title: "Skills you want to LEARN",
-              chipColor: Colors.orange.withOpacity(0.3),
+              chipColor: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
               excludedSkills: skillsTeach,
             ),
 
@@ -264,12 +222,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildTextField(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: Theme.of(context).textTheme.bodyMedium,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFF1A1D36),
+        fillColor: Theme.of(context).colorScheme.surface,
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: Theme.of(context).textTheme.bodySmall,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
@@ -280,14 +238,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       controller: bioController,
       maxLength: 150,
       maxLines: 3,
-      style: const TextStyle(color: Colors.white),
+      style: Theme.of(context).textTheme.bodyMedium,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFF1A1D36),
+        fillColor: Theme.of(context).colorScheme.surface,
         hintText: "Tell us about yourself...",
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: Theme.of(context).textTheme.bodySmall,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-        counterStyle: const TextStyle(color: Colors.white54),
+        counterStyle: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
@@ -298,7 +256,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: ElevatedButton(
         onPressed: _isUploading ? null : _handleSave,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -370,9 +328,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Show success and return
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Profile updated successfully!"),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: const Text("Profile updated successfully!"),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
         ),
       );
 
@@ -390,7 +348,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
     );
   }
 
