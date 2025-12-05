@@ -110,11 +110,12 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: const Text('Schedule Swap', style: TextStyle(color: Colors.white)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text('Schedule Swap', style: theme.appBarTheme.titleTextStyle),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -126,17 +127,17 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1D36),
+                  color: theme.colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.group, color: Colors.blue, size: 24),
+                    Icon(Icons.group, color: theme.colorScheme.primary, size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Schedule with ${widget.otherUserName}',
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        style: theme.textTheme.titleMedium,
                       ),
                     ),
                   ],
@@ -149,12 +150,12 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
               _buildSection(
                 title: 'Date',
                 child: ListTile(
-                  leading: const Icon(Icons.calendar_today, color: Colors.blue),
+                  leading: Icon(Icons.calendar_today, color: theme.colorScheme.primary),
                   title: Text(
                     DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
-                    style: const TextStyle(color: Colors.white),
+                    style: theme.textTheme.bodyMedium,
                   ),
-                  trailing: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  trailing: Icon(Icons.arrow_drop_down, color: theme.iconTheme.color),
                   onTap: _selectDate,
                 ),
               ),
@@ -163,12 +164,12 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
               _buildSection(
                 title: 'Time',
                 child: ListTile(
-                  leading: const Icon(Icons.access_time, color: Colors.blue),
+                  leading: Icon(Icons.access_time, color: theme.colorScheme.primary),
                   title: Text(
                     _selectedTime.format(context),
-                    style: const TextStyle(color: Colors.white),
+                    style: theme.textTheme.bodyMedium,
                   ),
-                  trailing: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  trailing: Icon(Icons.arrow_drop_down, color: theme.iconTheme.color),
                   onTap: _selectTime,
                 ),
               ),
@@ -178,8 +179,8 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
                 title: 'Duration',
                 child: DropdownButtonFormField<int>(
                   value: _selectedDuration,
-                  dropdownColor: const Color(0xFF1A1D36),
-                  style: const TextStyle(color: Colors.white),
+                  dropdownColor: theme.colorScheme.surfaceVariant,
+                  style: theme.textTheme.bodyMedium,
                   items: [30, 60, 90, 120].map((duration) {
                     return DropdownMenuItem(
                       value: duration,
@@ -198,10 +199,10 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
                 title: 'Location',
                 child: TextField(
                   controller: _locationController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: theme.textTheme.bodyMedium,
+                  decoration: InputDecoration(
                     hintText: 'E.g., Library study room, QEII Library, etc.',
-                    hintStyle: TextStyle(color: Colors.white54),
+                    hintStyle: theme.textTheme.bodySmall,
                     border: InputBorder.none,
                   ),
                 ),
@@ -212,11 +213,11 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
                 title: 'Notes (Optional)',
                 child: TextField(
                   controller: _notesController,
-                  style: const TextStyle(color: Colors.white),
+                  style: theme.textTheme.bodyMedium,
                   maxLines: 3,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Any specific topics or materials to bring...',
-                    hintStyle: TextStyle(color: Colors.white54),
+                    hintStyle: theme.textTheme.bodySmall,
                     border: InputBorder.none,
                   ),
                 ),
@@ -230,15 +231,15 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
                 child: ElevatedButton(
                   onPressed: _scheduleSwap,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: theme.colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Schedule Swap Session',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onPrimary),
                   ),
                 ),
               ),
@@ -253,14 +254,17 @@ class _ScheduleSwapScreenState extends State<ScheduleSwapScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        Builder(builder: (context) {
+          final theme = Theme.of(context);
+          return Text(
+            title,
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          );
+        }),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1D36),
+            color: Theme.of(context).colorScheme.surfaceVariant,
             borderRadius: BorderRadius.circular(12),
           ),
           child: child,

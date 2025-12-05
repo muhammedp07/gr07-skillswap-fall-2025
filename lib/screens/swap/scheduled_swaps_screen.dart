@@ -70,18 +70,19 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     // In the StreamBuilder, use the appropriate stream
     Stream<List<SwapSession>> sessionStream = _useFallbackQuery
         ? _sessionService.getSessionsForUserSimple(_currentUserId)
         : _sessionService.getSessionsForUser(_currentUserId);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         title: Text(
           'Scheduled Swaps with ${widget.otherUserName}',
-          style: const TextStyle(color: Colors.white),
+          style: theme.appBarTheme.titleTextStyle,
         ),
       ),
       body: Column(
@@ -89,15 +90,15 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
           // Header with new schedule button
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF1A1D36),
+            color: theme.colorScheme.surfaceVariant,
             child: Row(
               children: [
-                const Icon(Icons.schedule, color: Colors.blue, size: 24),
+                Icon(Icons.schedule, color: theme.colorScheme.primary, size: 24),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Manage your scheduled swap sessions',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ),
                 ElevatedButton.icon(
@@ -107,8 +108,8 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('New Schedule'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                 ),
@@ -163,24 +164,25 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildWarningState() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
-      color: Colors.orange.withOpacity(0.1),
+      color: theme.colorScheme.secondary.withOpacity(0.08),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+          Icon(Icons.info_outline, color: theme.colorScheme.secondary, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _error!,
-              style: const TextStyle(color: Colors.orange, fontSize: 12),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.secondary),
             ),
           ),
           TextButton(
             onPressed: _showIndexHelp,
             child: const Text(
               'Fix',
-              style: TextStyle(color: Colors.orange, fontSize: 12),
+              style: TextStyle(fontSize: 12),
             ),
           ),
         ],
@@ -189,28 +191,29 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildErrorState() {
+    final theme = Theme.of(context);
     return Expanded(
-      child: Padding(
+          child: Padding(
         padding: const EdgeInsets.all(16),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1D36),
+            color: theme.colorScheme.surfaceVariant,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Unable to load sessions',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: theme.textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               Text(
                 _error ?? 'Unknown error',
-                style: const TextStyle(color: Colors.white70),
+                style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -220,15 +223,15 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
                   ElevatedButton(
                     onPressed: _loadSessions,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                     ),
                     child: const Text('Try Again'),
                   ),
                   const SizedBox(width: 12),
                   TextButton(
                     onPressed: _showIndexHelp,
-                    child: const Text('Get Help'),
+                    child: Text('Get Help', style: theme.textTheme.bodyMedium),
                   ),
                 ],
               ),
@@ -240,30 +243,31 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildStreamErrorState(dynamic error) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Error loading sessions',
-              style: TextStyle(color: Colors.white, fontSize: 18),
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: const TextStyle(color: Colors.white70),
+              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadSessions,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
               ),
               child: const Text('Try Again'),
             ),
@@ -274,16 +278,17 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildLoadingState() {
-    return const Expanded(
+    final theme = Theme.of(context);
+    return Expanded(
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               'Loading sessions...',
-              style: TextStyle(color: Colors.white70),
+              style: theme.textTheme.bodyMedium,
             ),
           ],
         ),
@@ -292,33 +297,27 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.schedule_outlined,
               size: 64,
-              color: Colors.white38,
+              color: theme.colorScheme.onSurface.withOpacity(0.38),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No Scheduled Swaps',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Schedule your first swap session with ${widget.otherUserName}',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -327,8 +326,8 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Schedule First Swap'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
             ),
@@ -339,11 +338,12 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildSessionCard(SwapSession session) {
+    final theme = Theme.of(context);
     final isUpcoming = session.isUpcoming;
     final isInitiator = session.initiatorId == _currentUserId;
 
     return Card(
-      color: const Color(0xFF1A1D36),
+      color: theme.colorScheme.surfaceVariant,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -364,18 +364,18 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
             // Date and Time
             Row(
               children: [
-                const Icon(Icons.calendar_today, size: 16, color: Colors.white70),
+                Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('EEE, MMM d, yyyy').format(session.scheduledTime),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(width: 16),
-                const Icon(Icons.access_time, size: 16, color: Colors.white70),
+                Icon(Icons.access_time, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('h:mm a').format(session.scheduledTime),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: theme.textTheme.bodyMedium,
                 ),
               ],
             ),
@@ -385,19 +385,19 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
             // Duration and Location
             Row(
               children: [
-                const Icon(Icons.timer, size: 16, color: Colors.white70),
+                Icon(Icons.timer, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                 const SizedBox(width: 8),
                 Text(
                   '${session.duration.inMinutes} minutes',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(width: 16),
-                const Icon(Icons.location_on, size: 16, color: Colors.white70),
+                Icon(Icons.location_on, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     session.location,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: theme.textTheme.bodyMedium,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -407,13 +407,13 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
             // Notes (if any)
             if (session.notes != null && session.notes!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Notes:',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: theme.textTheme.bodySmall,
               ),
               Text(
                 session.notes!,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                style: theme.textTheme.bodySmall,
               ),
             ],
 
@@ -421,11 +421,7 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
             const SizedBox(height: 8),
             Text(
               isInitiator ? 'You scheduled this session' : '${widget.otherUserName} scheduled this session',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -434,6 +430,7 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   }
 
   Widget _buildStatusIndicator(SwapSession session) {
+    final theme = Theme.of(context);
     Color color;
     String statusText;
     IconData icon;
@@ -462,19 +459,16 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
         const SizedBox(width: 6),
         Text(
           statusText,
-          style: TextStyle(
-            color: color,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          style: theme.textTheme.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w600),
         ),
       ],
     );
   }
 
   Widget _buildSessionActions(SwapSession session) {
+    final theme = Theme.of(context);
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: Colors.white70),
+      icon: Icon(Icons.more_vert, color: theme.iconTheme.color?.withOpacity(0.7)),
       itemBuilder: (context) => [
         const PopupMenuItem(
           value: 'cancel',
@@ -529,105 +523,114 @@ class _ScheduledSwapsScreenState extends State<ScheduledSwapsScreen> {
   void _cancelSession(SwapSession session) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1D36),
-        title: const Text('Cancel Session', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Are you sure you want to cancel this swap session?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('No', style: TextStyle(color: Colors.white70)),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          backgroundColor: theme.colorScheme.surfaceVariant,
+          title: Text('Cancel Session', style: theme.textTheme.titleMedium),
+          content: Text(
+            'Are you sure you want to cancel this swap session?',
+            style: theme.textTheme.bodyMedium,
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await _sessionService.updateSessionStatus(session.id, 'cancelled');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Session cancelled'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to cancel: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('No', style: theme.textTheme.bodyMedium),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await _sessionService.updateSessionStatus(session.id, 'cancelled');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Session cancelled'),
+                      backgroundColor: theme.colorScheme.secondary,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to cancel: $e'),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
+              },
+              child: Text('Yes, Cancel', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _deleteSession(SwapSession session) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1D36),
-        title: const Text('Delete Session', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Are you sure you want to delete this session? This action cannot be undone.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          backgroundColor: theme.colorScheme.surfaceVariant,
+          title: Text('Delete Session', style: theme.textTheme.titleMedium),
+          content: Text(
+            'Are you sure you want to delete this session? This action cannot be undone.',
+            style: theme.textTheme.bodyMedium,
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await _sessionService.deleteSession(session.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Session deleted'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to delete: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: theme.textTheme.bodyMedium),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await _sessionService.deleteSession(session.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Session deleted'),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete: $e'),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
+              },
+              child: Text('Delete', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showIndexHelp() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1D36),
-        title: const Text('Firestore Index Required', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'This feature requires a Firestore index to be created.\n\n'
-          'Please ask your project administrator to create the index or click the link in the error message to create it automatically.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.white70)),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          backgroundColor: theme.colorScheme.surfaceVariant,
+          title: Text('Firestore Index Required', style: theme.textTheme.titleMedium),
+          content: Text(
+            'This feature requires a Firestore index to be created.\n\n'
+            'Please ask your project administrator to create the index or click the link in the error message to create it automatically.',
+            style: theme.textTheme.bodyMedium,
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK', style: theme.textTheme.bodyMedium),
+            ),
+          ],
+        );
+      },
     );
   }
 }
