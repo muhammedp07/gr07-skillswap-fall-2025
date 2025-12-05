@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gr07_skillswap/screens/swap/schedule_swap_screen.dart';
@@ -10,8 +12,11 @@ import '../../services/notification_service.dart';
 import '../../services/review_service.dart';
 import '../../services/user_service.dart';
 import '../../services/video_call_service.dart';
-import '../profile/public_profile_screen.dart';
 import '../video/video_call_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -32,6 +37,9 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
 
+  final ImagePicker _imagePicker = ImagePicker();
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
   String get _currentUserId {
     final user = FirebaseAuth.instance.currentUser;
     // small fallback so chat still works if auth glitches
@@ -42,6 +50,72 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<String> _getCurrentUserName() async {
+    try {
+      final userProfile = await UserService().getCurrentUserProfile();
+      if (userProfile != null && userProfile.name.isNotEmpty) {
+        return userProfile.name;
+      }
+    } catch (_) {}
+    final user = FirebaseAuth.instance.currentUser;
+    final emailPrefix = (user?.email ?? '').split('@').first;
+    return emailPrefix.isNotEmpty ? emailPrefix : 'Someone';
+  }
+
+  Future<void> _pickAndSendImage() async {
+    final image = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    // Upload to Firebase Storage
+    final ref = _storage.ref().child(
+      'chat_images/${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+    final uploadTask = await ref.putFile(File(image.path));
+    final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+    final senderName = await _getCurrentUserName();
+
+    // Send as special message
+    await ChatService.instance.sendTextMessageAndNotify(
+      chatId: widget.chatId,
+      senderId: _currentUserId,
+      senderName: senderName,
+      recipientId: widget.otherUserId,
+      text: '[Image]',
+      attachmentUrl: downloadUrl,
+      attachmentType: 'image',
+    );
+  }
+
+  Future<void> _pickAndSendFile() async {
+    final result = await FilePicker.platform.pickFiles(allowMultiple: false);
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.single;
+    final path = file.path;
+    if (path == null) return;
+
+    final fileName = file.name;
+    final ref = _storage.ref().child(
+      'chat_files/${DateTime.now().millisecondsSinceEpoch}_$fileName',
+    );
+
+    final uploadTask = await ref.putFile(File(path));
+    final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+    final senderName = await _getCurrentUserName();
+
+    await ChatService.instance.sendTextMessageAndNotify(
+      chatId: widget.chatId,
+      senderId: _currentUserId,
+      senderName: senderName,
+      recipientId: widget.otherUserId,
+      text: fileName,
+      attachmentUrl: downloadUrl,
+      attachmentType: 'file',
+    );
   }
 
   Future<void> _handleSend() async {
@@ -67,6 +141,7 @@ class _ChatScreenState extends State<ChatScreen> {
       senderName: senderName,
       recipientId: widget.otherUserId,
       text: text,
+      // no attachment for plain text
     );
   }
 
@@ -116,48 +191,79 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  /// Show confirmation dialog to delete the entire chat thread
-  Future<void> _confirmDeleteChat() async {
-    final confirmed = await showDialog<bool>(
+  // Enhanced delete confirmation dialog
+  void _confirmDeleteChat() async {
+    final theme = Theme.of(context);
+    final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Chat'),
-        content: const Text(
-          'Are you sure you want to delete this entire conversation? This action cannot be undone.',
+        title: Text('Delete Conversation', style: theme.textTheme.titleMedium),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will permanently delete:', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            Text('• All messages', style: theme.textTheme.bodySmall),
+            Text('• Swap history', style: theme.textTheme.bodySmall),
+            Text('• Scheduled sessions', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 16),
+            Text('This action cannot be undone.', style: theme.textTheme.bodyMedium),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: theme.textTheme.bodyMedium),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+            child: Text('Delete Forever'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if (result == true) {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: theme.colorScheme.primary),
+              const SizedBox(width: 16),
+              Text('Deleting chat...', style: theme.textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      );
+
       try {
         await ChatService.instance.deleteChat(widget.chatId);
-        if (mounted) {
-          Navigator.of(context).pop(); // Go back to chat list
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Chat deleted successfully')),
-          );
-        }
+        Navigator.of(context)
+          ..pop() // Close loading dialog
+          ..pop(); // Go back to chat list
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Chat deleted successfully', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onPrimary)),
+            backgroundColor: theme.colorScheme.primary,
+          ),
+        );
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to delete chat: $e')));
-        }
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete chat: $e', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onError)),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
       }
     }
   }
-
   /// Show confirmation dialog to delete a single message
   Future<void> _confirmDeleteMessage(chat_models.ChatMessage message) async {
     // Only allow users to delete their own messages
@@ -213,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF151936),
+      backgroundColor: Theme.of(context).dialogBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -226,7 +332,6 @@ class _ChatScreenState extends State<ChatScreen> {
           builder: (ctx, setModalState) {
             Future<void> handleSubmit() async {
               if (isSaving) return;
-
               setModalState(() => isSaving = true);
 
               try {
@@ -244,11 +349,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   markedByUserId: _currentUserId,
                 );
 
-                // 3) Send notification to other user to leave a review
                 String senderName = 'Someone';
                 try {
-                  final userProfile = await UserService()
-                      .getCurrentUserProfile();
+                  final userProfile = await UserService().getCurrentUserProfile();
                   if (userProfile != null && userProfile.name.isNotEmpty) {
                     senderName = userProfile.name;
                   }
@@ -259,29 +362,21 @@ class _ChatScreenState extends State<ChatScreen> {
                   fromUserId: _currentUserId,
                   fromUserName: senderName,
                   title: 'Swap Completed!',
-                  body:
-                      '$senderName marked your swap as complete. Leave a review!',
+                  body: '$senderName marked your swap as complete. Leave a review!',
                   type: NotificationType.swapCompleted,
                   timestamp: DateTime.now(),
                   relatedId: widget.chatId,
                 );
 
                 try {
-                  await NotificationService().sendNotification(
-                    widget.otherUserId,
-                    notification,
-                  );
-                } catch (_) {
-                  // Don't fail the whole operation if notification fails
-                }
+                  await NotificationService().sendNotification(widget.otherUserId, notification);
+                } catch (_) {}
 
                 if (!mounted) return;
 
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Swap marked as done and review submitted.'),
-                  ),
+                  const SnackBar(content: Text('Swap marked as done and review submitted.')),
                 );
               } catch (e) {
                 if (mounted) {
@@ -294,6 +389,7 @@ class _ChatScreenState extends State<ChatScreen> {
               }
             }
 
+            final theme = Theme.of(ctx);
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
@@ -311,26 +407,19 @@ class _ChatScreenState extends State<ChatScreen> {
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: theme.dividerColor,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Mark swap as done',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "How was your experience with this swap?",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -346,7 +435,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         },
                         icon: Icon(
                           isSelected ? Icons.star : Icons.star_border,
-                          color: isSelected ? Colors.amber : Colors.grey,
+                          color: isSelected ? theme.colorScheme.secondary : theme.disabledColor,
                         ),
                       );
                     }),
@@ -355,19 +444,16 @@ class _ChatScreenState extends State<ChatScreen> {
                   TextField(
                     controller: commentController,
                     maxLines: 3,
-                    style: const TextStyle(color: Colors.white),
+                    style: theme.textTheme.bodyMedium,
                     decoration: InputDecoration(
                       hintText: 'Leave a short comment (optional)',
-                      hintStyle: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 14,
-                      ),
+                      hintStyle: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                       filled: true,
-                      fillColor: const Color(0xFF11152B),
+                      fillColor: theme.cardColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Colors.white24,
+                        borderSide: BorderSide(
+                          color: theme.dividerColor,
                           width: 1,
                         ),
                       ),
@@ -378,13 +464,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: isSaving
-                              ? null
-                              : () => Navigator.of(ctx).pop(),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(color: Colors.white70),
-                          ),
+                          onPressed: isSaving ? null : () => Navigator.of(ctx).pop(),
+                          child: Text('Cancel', style: theme.textTheme.bodyMedium),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -392,28 +473,23 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: ElevatedButton(
                           onPressed: isSaving ? null : handleSubmit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: theme.colorScheme.onPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
                           child: isSaving
-                              ? const SizedBox(
+                              ? SizedBox(
                                   height: 18,
                                   width: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      Colors.white,
-                                    ),
+                                    valueColor: AlwaysStoppedAnimation(theme.colorScheme.onPrimary),
                                   ),
                                 )
-                              : const Text(
-                                  'Submit & mark done',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
+                              : Text('Submit & mark done', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ],
@@ -427,6 +503,70 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget _buildMessageContent(chat_models.ChatMessage message) {
+    if (message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty) {
+      // Image attachment
+      if (message.attachmentType == 'image') {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: Image.network(message.attachmentUrl!, fit: BoxFit.cover),
+            ),
+            if (message.text.isNotEmpty && message.text != '[Image]')
+              Text(message.text, style: const TextStyle(color: Colors.white)),
+          ],
+        );
+      }
+
+      // File attachment (non-image)
+      if (message.attachmentType == 'file') {
+        final fileName = message.text.isNotEmpty ? message.text : 'Attachment';
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.insert_drive_file, color: Colors.white),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                fileName,
+                style: const TextStyle(color: Colors.white),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.open_in_new, color: Colors.white),
+              onPressed: () async {
+                final uri = Uri.tryParse(message.attachmentUrl!);
+                if (uri != null) {
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (_) {}
+                }
+              },
+            ),
+          ],
+        );
+      }
+
+      // Fallback: try to show preview (image) or link
+      final theme = Theme.of(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            child: Image.network(message.attachmentUrl!, fit: BoxFit.cover),
+          ),
+          if (message.text.isNotEmpty) Text(message.text, style: theme.textTheme.bodyMedium),
+        ],
+      );
+    }
+
+    return Text(message.text, style: const TextStyle(color: Colors.white));
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<chat_models.Chat?>(
@@ -438,62 +578,32 @@ class _ChatScreenState extends State<ChatScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PublicProfileScreen(userId: widget.otherUserId),
-                  ),
-                );
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.otherUserName,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  if (chat != null)
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isCompleted ? Colors.green : Colors.orange,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isCompleted ? 'Completed' : 'In progress',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade400,
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
+            title: Row(
+              children: [
+                CircleAvatar(radius: 16, backgroundColor: Theme.of(context).colorScheme.primary, child: Text(widget.otherUserName[0], style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onPrimary))),
+                const SizedBox(width: 12),
+                Text(
+                  widget.otherUserName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.videocam),
+                icon: Icon(Icons.videocam, color: Theme.of(context).iconTheme.color),
                 onPressed: _handleStartCall,
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
+                icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
                 itemBuilder: (context) => [
                   // Scheduling options
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'schedule',
                     child: Row(
                       children: [
-                        Icon(Icons.schedule, color: Colors.blue),
-                        SizedBox(width: 12),
-                        Text('Schedule Swap'),
+                        Icon(Icons.schedule, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 12),
+                        Text('Schedule Swap', style: Theme.of(context).textTheme.bodyMedium),
                       ],
                     ),
                   ),
@@ -501,31 +611,31 @@ class _ChatScreenState extends State<ChatScreen> {
                     value: 'view_schedules',
                     child: Row(
                       children: [
-                        Icon(Icons.list, color: Colors.blue),
-                        SizedBox(width: 12),
-                        Text('View Scheduled Swaps'),
+                        Icon(Icons.list, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 12),
+                        Text('View Scheduled Swaps', style: Theme.of(context).textTheme.bodyMedium),
                       ],
                     ),
                   ),
                   const PopupMenuDivider(),
                   if (chat != null && !isCompleted)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'mark_done',
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, color: Colors.green),
-                          SizedBox(width: 12),
-                          Text('Mark as Done'),
+                          Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary),
+                          const SizedBox(width: 12),
+                          Text('Mark as Done', style: Theme.of(context).textTheme.bodyMedium),
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete_chat',
                     child: Row(
                       children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 12),
-                        Text('Delete Chat'),
+                        Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                        const SizedBox(width: 12),
+                        Text('Delete Chat', style: Theme.of(context).textTheme.bodyMedium),
                       ],
                     ),
                   ),
@@ -577,10 +687,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     }
 
                     if (messages.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Text(
                           'No messages yet.\nSay hi and start the swap! 👋',
                           textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       );
                     }
@@ -612,13 +723,10 @@ class _ChatScreenState extends State<ChatScreen> {
                               decoration: BoxDecoration(
                                 color: isMe
                                     ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey.shade800,
+                                    : Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: Text(
-                                message.text,
-                                style: const TextStyle(color: Colors.white),
-                              ),
+                              child: _buildMessageContent(message),
                             ),
                           ),
                         );
@@ -638,29 +746,65 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          minLines: 1,
-                          maxLines: 5,
-                          decoration: const InputDecoration(
-                            hintText: 'Type a message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(24),
-                              ),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                          ),
-                        ),
+                           child: Builder(builder: (ctx) {
+                               final theme = Theme.of(ctx);
+                               return TextField(
+                                 controller: _controller,
+                                 minLines: 1,
+                                 maxLines: 5,
+                                 decoration: InputDecoration(
+                                   hintText: 'Type a message...',
+                                   hintStyle: theme.textTheme.bodySmall,
+                                   filled: true,
+                                   fillColor: theme.colorScheme.surface,
+                                   border: OutlineInputBorder(
+                                     borderRadius: BorderRadius.circular(24),
+                                     borderSide: BorderSide.none,
+                                   ),
+                                   contentPadding: const EdgeInsets.symmetric(
+                                     horizontal: 16,
+                                     vertical: 8,
+                                   ),
+                                 ),
+                               );
+                             }),
                       ),
                       const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: _handleSend,
-                      ),
+                           // Attachment button
+                           IconButton(
+                             icon: Icon(Icons.attach_file, color: Theme.of(context).iconTheme.color),
+                             onPressed: () {
+                               showModalBottomSheet(
+                                 context: context,
+                                 builder: (ctx) => SafeArea(
+                                   child: Wrap(
+                                     children: [
+                                       ListTile(
+                                         leading: Icon(Icons.photo, color: Theme.of(ctx).iconTheme.color),
+                                         title: Text('Image', style: Theme.of(ctx).textTheme.bodyMedium),
+                                         onTap: () {
+                                           Navigator.of(ctx).pop();
+                                           _pickAndSendImage();
+                                         },
+                                       ),
+                                       ListTile(
+                                         leading: Icon(Icons.insert_drive_file, color: Theme.of(ctx).iconTheme.color),
+                                         title: Text('File', style: Theme.of(ctx).textTheme.bodyMedium),
+                                         onTap: () {
+                                           Navigator.of(ctx).pop();
+                                           _pickAndSendFile();
+                                         },
+                                       ),
+                                     ],
+                                   ),
+                                 ),
+                               );
+                             },
+                           ),
+                           IconButton(
+                             icon: Icon(Icons.send, color: Theme.of(context).iconTheme.color),
+                             onPressed: _handleSend,
+                           ),
                     ],
                   ),
                 ),

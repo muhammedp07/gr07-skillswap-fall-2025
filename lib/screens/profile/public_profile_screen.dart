@@ -14,12 +14,13 @@ class PublicProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
-        title: const Text('Profile', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
+        title: Text('Profile', style: theme.textTheme.titleLarge),
+        iconTheme: theme.iconTheme,
       ),
       body: FutureBuilder<UserProfile?>(
         future: UserService().getUserProfile(userId),
@@ -28,10 +29,10 @@ class PublicProfileScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snap.hasData) {
-            return const Center(
+            return Center(
               child: Text(
                 'User not found',
-                style: TextStyle(color: Colors.white),
+                style: theme.textTheme.bodyMedium,
               ),
             );
           }
@@ -65,10 +66,7 @@ class PublicProfileScreen extends StatelessWidget {
                                   profile.name.isNotEmpty
                                       ? profile.name[0].toUpperCase()
                                       : '?',
-                                  style: const TextStyle(
-                                    fontSize: 30,
-                                    color: Colors.white,
-                                  ),
+                                  style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.onSurface),
                                 )
                               : null,
                         ),
@@ -79,54 +77,38 @@ class PublicProfileScreen extends StatelessWidget {
                             children: [
                               Text(
                                 profile.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: theme.textTheme.titleMedium?.copyWith(fontSize: 22, fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 profile.major,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
                               ),
                               const SizedBox(height: 8),
                               if (hasReviews)
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.star,
-                                      color: Colors.amber,
+                                      color: theme.colorScheme.secondary,
                                       size: 18,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      summary!.average.toStringAsFixed(1),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      summary.average.toStringAsFixed(1),
+                                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '(${summary.count} review${summary.count == 1 ? '' : 's'})',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                      ),
+                                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
                                     ),
                                   ],
                                 )
-                              else
-                                const Text(
-                                  'No reviews yet',
-                                  style: TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 12,
+                                else
+                                  Text(
+                                    'No reviews yet',
+                                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
                                   ),
-                                ),
                             ],
                           ),
                         ),
@@ -136,34 +118,16 @@ class PublicProfileScreen extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     if ((profile.bio ?? '').isNotEmpty) ...[
-                      const Text(
-                        'About',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('About', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Text(
                         profile.bio!,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
+                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
                       ),
                       const SizedBox(height: 24),
                     ],
 
-                    const Text(
-                      'Can Teach',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text('Can Teach', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -171,9 +135,8 @@ class PublicProfileScreen extends StatelessWidget {
                       children: profile.skillsTeachDisplay
                           .map(
                             (s) => Chip(
-                              label: Text(s),
-                              backgroundColor: const Color(0xFF1F2A5A),
-                              labelStyle: const TextStyle(color: Colors.white),
+                              label: Text(s, style: theme.textTheme.bodySmall),
+                              backgroundColor: theme.colorScheme.primaryContainer,
                             ),
                           )
                           .toList(),
@@ -181,14 +144,7 @@ class PublicProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    const Text(
-                      'Wants to Learn',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text('Wants to Learn', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -196,9 +152,8 @@ class PublicProfileScreen extends StatelessWidget {
                       children: profile.skillsLearnDisplay
                           .map(
                             (s) => Chip(
-                              label: Text(s),
-                              backgroundColor: const Color(0xFF264C5E),
-                              labelStyle: const TextStyle(color: Colors.white),
+                              label: Text(s, style: theme.textTheme.bodySmall),
+                              backgroundColor: theme.colorScheme.secondaryContainer,
                             ),
                           )
                           .toList(),
@@ -220,10 +175,10 @@ class PublicProfileScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.blue),
-                          foregroundColor: Colors.blue,
+                          side: BorderSide(color: theme.colorScheme.primary),
+                          foregroundColor: theme.colorScheme.primary,
                         ),
-                        child: const Text('View all reviews'),
+                        child: Text('View all reviews', style: theme.textTheme.bodyMedium),
                       ),
                     ),
                   ],

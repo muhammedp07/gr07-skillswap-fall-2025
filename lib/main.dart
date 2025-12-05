@@ -10,10 +10,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/push_notification_service.dart';
 import 'services/firebase_background_handler.dart';
 import 'services/notification_navigation_service.dart';
+import 'utils/theme_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize saved theme preference
+  await ThemeManager.initialize();
 
   // Set up background message handler (must be top-level function)
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -30,12 +34,19 @@ class SkillSwapApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SkillSwap',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
-      home: const AuthGate(),
-      navigatorKey: NotificationNavigationService.navigatorKey,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeManager.themeNotifier,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'SkillSwap',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: mode,
+          home: const AuthGate(),
+          navigatorKey: NotificationNavigationService.navigatorKey,
+        );
+      },
     );
   }
 }
@@ -101,7 +112,7 @@ class _AuthGateState extends State<AuthGate> {
 
   Widget _buildLoadingScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -113,7 +124,7 @@ class _AuthGateState extends State<AuthGate> {
             Text(
               'Loading SkillSwap...',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
                 fontSize: 16,
               ),
             ),
@@ -125,7 +136,7 @@ class _AuthGateState extends State<AuthGate> {
 
   Widget _buildErrorScreen(String error) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -134,10 +145,10 @@ class _AuthGateState extends State<AuthGate> {
             children: [
               const Icon(Icons.error_outline, color: Colors.red, size: 64),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Something went wrong',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -145,7 +156,7 @@ class _AuthGateState extends State<AuthGate> {
               const SizedBox(height: 10),
               Text(
                 error,
-                style: const TextStyle(color: Colors.white70),
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 30),

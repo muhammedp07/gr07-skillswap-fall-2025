@@ -16,31 +16,34 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
-        title: const Text("Reset Password"),
+        title: Text(
+          "Reset Password",
+          style: Theme.of(context).appBarTheme.titleTextStyle,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Enter your MUN email and we'll send you a reset link.",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
 
             TextField(
               controller: emailController,
-              style: const TextStyle(color: Colors.white),
+              style: Theme.of(context).textTheme.bodyLarge,
               decoration: InputDecoration(
                 labelText: "MUN Email",
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: Theme.of(context).textTheme.bodySmall,
                 filled: true,
-                fillColor: const Color(0xFF1A1D36),
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -52,7 +55,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             if (errorMessage != null)
               Text(
                 errorMessage!,
-                style: const TextStyle(color: Colors.redAccent),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
 
             const SizedBox(height: 20),
@@ -62,15 +65,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: ElevatedButton(
                 onPressed: loading ? null : _handleReset,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Send Reset Link"),
+                    ? const CircularProgressIndicator()
+                    : Text(
+                        "Send Reset Link",
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
               ),
             ),
           ],

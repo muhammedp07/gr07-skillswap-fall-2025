@@ -1,3 +1,4 @@
+// skill_selection_widget.dart - Updated for light theme
 import 'package:flutter/material.dart';
 import '../models/skill_category.dart';
 import '../models/skill_entry.dart';
@@ -9,7 +10,7 @@ class SkillSelectionWidget extends StatefulWidget {
   final Function(List<SkillEntry>) onSkillsChanged;
   final String title;
   final Color chipColor;
-  final List<SkillEntry>? excludedSkills; // Skills to disable (e.g., from opposite list)
+  final List<SkillEntry>? excludedSkills;
 
   const SkillSelectionWidget({
     super.key,
@@ -96,19 +97,16 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
     final normalizedTag = StringNormalizer.normalize(tag);
     final newSkill = SkillEntry(category: _selectedCategory!, tag: normalizedTag);
 
-    // Check if skill already selected
     if (widget.selectedSkills.contains(newSkill)) {
       _showMessage('This skill is already selected');
       return;
     }
 
-    // Check if skill is in excluded list
     if (widget.excludedSkills != null && widget.excludedSkills!.contains(newSkill)) {
       _showMessage('This skill is already in the other list');
       return;
     }
 
-    // Add skill to Firebase if it's not in the available list
     if (!_availableTagsForCategory.contains(normalizedTag)) {
       try {
         await _skillService.addSkillToCategory(_selectedCategory!, normalizedTag);
@@ -122,11 +120,9 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
       }
     }
 
-    // Add to selected skills
     final updatedSkills = [...widget.selectedSkills, newSkill];
     widget.onSkillsChanged(updatedSkills);
 
-    // Reset
     setState(() {
       _selectedCategory = null;
       _tagController.clear();
@@ -142,20 +138,26 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkTheme = theme.brightness == Brightness.dark;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onBackground,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -167,13 +169,24 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
             spacing: 8,
             runSpacing: 8,
             children: widget.selectedSkills.map((skill) {
+              // Determine text color based on chip color brightness
+              final chipBrightness = ThemeData.estimateBrightnessForColor(widget.chipColor);
+              final textColor = chipBrightness == Brightness.dark ? Colors.white : Colors.black;
+              
               return Chip(
                 label: Text(
                   skill.displaySkill,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 13,
+                  ),
                 ),
                 backgroundColor: widget.chipColor,
-                deleteIcon: const Icon(Icons.close, size: 18, color: Colors.white),
+                deleteIcon: Icon(
+                  Icons.close,
+                  size: 18,
+                  color: textColor,
+                ),
                 onDeleted: () => _removeSkill(skill),
               );
             }).toList(),
@@ -181,27 +194,39 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
           const SizedBox(height: 16),
         ],
 
-        // Category Dropdown
+        // Category Dropdown - Updated for light theme
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1D36),
+            color: isDarkTheme ? const Color(0xFF1A1D36) : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDarkTheme ? Colors.white30 : theme.colorScheme.outline.withOpacity(0.5),
+            ),
           ),
           child: DropdownButton<SkillCategory>(
             value: _selectedCategory,
-            hint: const Text(
+            hint: Text(
               'Select Category',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(
+                color: isDarkTheme ? Colors.white54 : theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
             isExpanded: true,
-            dropdownColor: const Color(0xFF1A1D36),
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: isDarkTheme ? const Color(0xFF1A1D36) : theme.colorScheme.surface,
+            style: TextStyle(
+              color: theme.colorScheme.onBackground,
+            ),
             underline: const SizedBox(),
             items: SkillCategory.values.map((category) {
               return DropdownMenuItem(
                 value: category,
-                child: Text(category.displayName),
+                child: Text(
+                  category.displayName,
+                  style: TextStyle(
+                    color: theme.colorScheme.onBackground,
+                  ),
+                ),
               );
             }).toList(),
             onChanged: _onCategorySelected,
@@ -213,23 +238,47 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
         // Tag input with autocomplete
         if (_selectedCategory != null) ...[
           if (_isLoadingTags)
-            const Center(child: CircularProgressIndicator())
+            Center(
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
+            )
           else ...[
             // Text field for tag input
             TextField(
               controller: _tagController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: theme.colorScheme.onBackground,
+              ),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFF1A1D36),
+                fillColor: isDarkTheme ? const Color(0xFF1A1D36) : theme.colorScheme.surface,
                 hintText: 'Type skill name...',
-                hintStyle: const TextStyle(color: Colors.white54),
+                hintStyle: TextStyle(
+                  color: isDarkTheme ? Colors.white54 : theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDarkTheme ? Colors.white30 : theme.colorScheme.outline.withOpacity(0.5),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.add, color: Colors.blue),
+                  icon: Icon(
+                    Icons.add,
+                    color: theme.colorScheme.primary,
+                  ),
                   onPressed: () {
                     if (_tagController.text.trim().isNotEmpty) {
                       _addSkill(_tagController.text.trim());
@@ -251,8 +300,18 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
               Container(
                 constraints: const BoxConstraints(maxHeight: 200),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1D36),
+                  color: isDarkTheme ? const Color(0xFF1A1D36) : theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDarkTheme ? Colors.white30 : theme.colorScheme.outline.withOpacity(0.3),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: ListView.builder(
                   shrinkWrap: true,
@@ -264,7 +323,9 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
                     return ListTile(
                       title: Text(
                         displayTag,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: theme.colorScheme.onBackground,
+                        ),
                       ),
                       onTap: () => _addSkill(tag),
                     );
@@ -280,7 +341,10 @@ class _SkillSelectionWidgetState extends State<SkillSelectionWidget> {
           _selectedCategory == null
               ? 'Select a category to add skills'
               : 'Type a skill name or select from suggestions',
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          style: TextStyle(
+            color: isDarkTheme ? Colors.white54 : theme.colorScheme.onSurface.withOpacity(0.6),
+            fontSize: 12,
+          ),
         ),
       ],
     );

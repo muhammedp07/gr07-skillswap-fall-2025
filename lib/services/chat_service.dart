@@ -51,15 +51,17 @@ class ChatService {
         );
   }
 
-  /// Send a simple text message (image/file can be added later).
+  /// Send a simple text message (image/file can be attached).
   Future<void> sendTextMessage({
     required String chatId,
     required String senderId,
     required String text,
     String? imageUrl,
+    String? attachmentUrl,
+    String? attachmentType,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty && (imageUrl == null || imageUrl.isEmpty)) {
+    if (trimmed.isEmpty && (imageUrl == null || imageUrl.isEmpty) && (attachmentUrl == null || attachmentUrl.isEmpty)) {
       return; // nothing to send
     }
 
@@ -94,6 +96,8 @@ class ChatService {
         'senderId': senderId,
         'text': trimmed,
         'imageUrl': imageUrl,
+        'attachmentUrl': attachmentUrl,
+        'attachmentType': attachmentType,
         'createdAt': now,
         'readBy': [senderId],
       });
@@ -110,9 +114,11 @@ class ChatService {
     required String text,
     required String senderName,
     String? imageUrl,
+    String? attachmentUrl,
+    String? attachmentType,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty && (imageUrl == null || imageUrl.isEmpty)) {
+    if (trimmed.isEmpty && (imageUrl == null || imageUrl.isEmpty) && (attachmentUrl == null || attachmentUrl.isEmpty)) {
       return;
     }
 
@@ -122,6 +128,8 @@ class ChatService {
       senderId: senderId,
       text: trimmed,
       imageUrl: imageUrl,
+      attachmentUrl: attachmentUrl,
+      attachmentType: attachmentType,
     );
 
     // 2) in-app notification for the recipient

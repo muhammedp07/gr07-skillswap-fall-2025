@@ -79,6 +79,8 @@ class ChatMessage {
   final String? imageUrl;
   final DateTime createdAt;
   final List<String> readBy;
+  final String? attachmentUrl; // Add this
+  final String? attachmentType; // 'image', 'file', or null
 
   ChatMessage({
     required this.id,
@@ -88,6 +90,8 @@ class ChatMessage {
     this.imageUrl,
     required this.createdAt,
     required this.readBy,
+    this.attachmentUrl,
+    this.attachmentType,
   });
 
   factory ChatMessage.fromMap(String id, Map<String, dynamic> map) {
@@ -110,6 +114,8 @@ class ChatMessage {
       imageUrl: map['imageUrl'],
       createdAt: createdAt,
       readBy: List<String>.from(map['readBy'] ?? const []),
+      attachmentUrl: map['attachmentUrl'],
+      attachmentType: map['attachmentType'],
     );
   }
 
@@ -121,6 +127,8 @@ class ChatMessage {
       'imageUrl': imageUrl,
       'createdAt': Timestamp.fromDate(createdAt),
       'readBy': readBy,
+      'attachmentUrl': attachmentUrl,
+      'attachmentType': attachmentType,
     };
   }
 }

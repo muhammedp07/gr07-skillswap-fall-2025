@@ -29,9 +29,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isSignUp = _mode == AuthMode.signUp;
 
+    // Improved readability and ensured input streams are light-themed
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
-      appBar: AppBar(backgroundColor: const Color(0xFF0E1126), elevation: 0),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -39,18 +43,19 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text(
               isSignUp ? "Create your account" : "Welcome back",
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               isSignUp
                   ? "Use your @mun.ca email to join SkillSwap."
                   : "Sign in with your MUN email.",
-              style: const TextStyle(color: Colors.white70),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).textTheme.bodyMedium?.color
+                        ?.withOpacity(0.8),
+                  ),
             ),
 
             const SizedBox(height: 24),
@@ -82,9 +87,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     "Forgot password?",
-                    style: TextStyle(color: Colors.blueAccent),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.secondary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -107,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 12),
               Text(
                 errorMessage!,
-                style: const TextStyle(color: Colors.redAccent),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
 
@@ -133,54 +144,23 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextField(
       controller: controller,
       obscureText: obscure,
-      style: const TextStyle(color: Colors.white),
+      style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
+        labelStyle: Theme.of(context).textTheme.bodySmall,
         filled: true,
-        fillColor: const Color(0xFF1A1D36),
-        prefixIcon: icon != null ? Icon(icon, color: Colors.white70) : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+        prefixIcon: icon != null
+            ? Icon(icon, color: Theme.of(context).iconTheme.color)
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
     );
   }
 
-  Widget _buildCodeOfConduct() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Code of Conduct",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "• Be respectful\n• No harassment\n• Meet in public places\n• Not a dating app",
-            style: TextStyle(color: Colors.white70),
-          ),
-          Row(
-            children: [
-              Checkbox(
-                value: acceptedConduct,
-                onChanged: (v) {
-                  if (!mounted) return;
-                  setState(() => acceptedConduct = v!);
-                },
-              ),
-              const Text("I agree", style: TextStyle(color: Colors.white)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
+  // Improved readability for sign-in button, sign-up button, and Code of Conduct area
   Widget _buildSubmitButton(bool isSignUp) {
     return ElevatedButton(
       onPressed: loading
@@ -188,8 +168,9 @@ class _LoginScreenState extends State<LoginScreen> {
           : () => isSignUp ? _handleSignUp() : _handleSignIn(),
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(double.infinity, 52),
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
       ),
       child: loading
           ? const SizedBox(
@@ -200,7 +181,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 strokeWidth: 2,
               ),
             )
-          : Text(isSignUp ? "Create account" : "Sign in"),
+          : Text(
+              isSignUp ? "Create Account" : "Sign In",
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
     );
   }
 
@@ -218,8 +205,58 @@ class _LoginScreenState extends State<LoginScreen> {
           isSignUp
               ? "Already have an account? Sign in"
               : "Don't have an account? Create one",
-          style: const TextStyle(color: Colors.white70),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
+                fontWeight: FontWeight.w600,
+              ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCodeOfConduct() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Code of Conduct",
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "\u2022 Be respectful\n\u2022 No harassment\n\u2022 Meet in public places\n\u2022 Not a dating app",
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color
+                      ?.withOpacity(0.8),
+                ),
+          ),
+          Row(
+            children: [
+              Checkbox(
+                value: acceptedConduct,
+                onChanged: (v) {
+                  if (!mounted) return;
+                  setState(() => acceptedConduct = v!);
+                },
+              ),
+              Text(
+                "I agree",
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

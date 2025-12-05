@@ -36,14 +36,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0E1126),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1126),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           "Set up your profile",
-          style: TextStyle(color: Colors.white),
+          style: theme.appBarTheme.titleTextStyle,
         ),
       ),
       body: SingleChildScrollView(
@@ -51,25 +52,25 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Your Name",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 6),
             _buildTextField(nameController, "Enter your name"),
 
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Program / Major",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 6),
             _buildTextField(majorController, "e.g. Computer Science"),
 
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Bio (Optional)",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 6),
             _buildBioField(),
@@ -83,7 +84,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 });
               },
               title: "Skills you can TEACH",
-              chipColor: Colors.green.withOpacity(0.3),
+              chipColor: theme.colorScheme.primaryContainer.withOpacity(0.3),
               excludedSkills: skillsLearn,
             ),
 
@@ -96,7 +97,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 });
               },
               title: "Skills you want to LEARN",
-              chipColor: Colors.orange.withOpacity(0.3),
+              chipColor: theme.colorScheme.secondaryContainer.withOpacity(0.3),
               excludedSkills: skillsTeach,
             ),
 
@@ -111,12 +112,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget _buildTextField(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: Theme.of(context).textTheme.bodyMedium,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFF1A1D36),
+        fillColor: Theme.of(context).colorScheme.surface,
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: Theme.of(context).textTheme.bodySmall,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
@@ -127,14 +128,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       controller: bioController,
       maxLength: 150,
       maxLines: 3,
-      style: const TextStyle(color: Colors.white),
+      style: Theme.of(context).textTheme.bodyMedium,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFF1A1D36),
+        fillColor: Theme.of(context).colorScheme.surface,
         hintText: "Tell us about yourself...",
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: Theme.of(context).textTheme.bodySmall,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-        counterStyle: const TextStyle(color: Colors.white54),
+        counterStyle: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
@@ -145,13 +146,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       child: ElevatedButton(
         onPressed: _handleProfileSave,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: const Text("Continue", style: TextStyle(fontSize: 16)),
+        child: Text("Continue", style: Theme.of(context).textTheme.titleSmall),
       ),
     );
   }
@@ -201,7 +202,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
     );
   }
 
