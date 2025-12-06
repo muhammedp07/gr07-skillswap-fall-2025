@@ -64,7 +64,8 @@ class HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
+        backgroundColor:
+            theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
         elevation: theme.appBarTheme.elevation ?? 0,
         title: Text(
           _pageTitles[_currentIndex],
@@ -81,7 +82,9 @@ class HomeScreenState extends State<HomeScreen> {
                   IconButton(
                     icon: Icon(
                       Icons.notifications_outlined,
-                      color: theme.iconTheme.color ?? theme.colorScheme.onBackground,
+                      color:
+                          theme.iconTheme.color ??
+                          theme.colorScheme.onBackground,
                     ),
                     tooltip: "Notifications",
                     onPressed: () {
@@ -100,9 +103,9 @@ class HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                            color: theme.colorScheme.error,
-                            shape: BoxShape.circle,
-                          ),
+                          color: theme.colorScheme.error,
+                          shape: BoxShape.circle,
+                        ),
                         constraints: const BoxConstraints(
                           minWidth: 16,
                           minHeight: 16,
@@ -129,10 +132,15 @@ class HomeScreenState extends State<HomeScreen> {
             builder: (context, mode, _) {
               final isDark = mode == ThemeMode.dark;
               return IconButton(
-                icon: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: Theme.of(context).iconTheme.color),
+                icon: Icon(
+                  isDark ? Icons.dark_mode : Icons.light_mode,
+                  color: Theme.of(context).iconTheme.color,
+                ),
                 tooltip: isDark ? 'Switch to light' : 'Switch to dark',
                 onPressed: () {
-                  ThemeManager.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
+                  ThemeManager.setThemeMode(
+                    isDark ? ThemeMode.light : ThemeMode.dark,
+                  );
                 },
               );
             },
@@ -203,24 +211,28 @@ class HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Cancel",
-              style: theme.textTheme.bodyMedium,
-            ),
+            child: Text("Cancel", style: theme.textTheme.bodyMedium),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await NavigationUtils.logout(context);
             },
-            child: Text("Log Out", style: TextStyle(color: theme.colorScheme.error)),
+            child: Text(
+              "Log Out",
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ),
         ],
       ),
     );
   }
 
-  static Widget _buildPlaceholderPage(BuildContext context, String title, IconData icon) {
+  static Widget _buildPlaceholderPage(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
     final theme = Theme.of(context);
     return Center(
       child: Column(
@@ -230,12 +242,18 @@ class HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           Text(
             "$title Page",
-            style: theme.textTheme.titleMedium?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8), fontSize: 18),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             "Coming Soon",
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodySmall?.color?.withOpacity(0.6), fontSize: 14),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+              fontSize: 14,
+            ),
           ),
         ],
       ),
