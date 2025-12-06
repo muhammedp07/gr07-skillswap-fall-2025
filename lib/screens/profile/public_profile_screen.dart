@@ -18,8 +18,7 @@ class PublicProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor:
-            theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
+        backgroundColor: theme.appBarTheme.backgroundColor ?? theme.colorScheme.background,
         title: Text('Profile', style: theme.textTheme.titleLarge),
         iconTheme: theme.iconTheme,
       ),
@@ -31,7 +30,10 @@ class PublicProfileScreen extends StatelessWidget {
           }
           if (!snap.hasData) {
             return Center(
-              child: Text('User not found', style: theme.textTheme.bodyMedium),
+              child: Text(
+                'User not found',
+                style: theme.textTheme.bodyMedium,
+              ),
             );
           }
 
@@ -64,10 +66,7 @@ class PublicProfileScreen extends StatelessWidget {
                                   profile.name.isNotEmpty
                                       ? profile.name[0].toUpperCase()
                                       : '?',
-                                  style: theme.textTheme.headlineSmall
-                                      ?.copyWith(
-                                        color: theme.colorScheme.onSurface,
-                                      ),
+                                  style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.onSurface),
                                 )
                               : null,
                         ),
@@ -78,37 +77,12 @@ class PublicProfileScreen extends StatelessWidget {
                             children: [
                               Text(
                                 profile.name,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: theme.textTheme.titleMedium?.copyWith(fontSize: 22, fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 profile.major,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontSize: 14,
-                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
                               ),
-                              // Badges
-                              if (profile.badges != null &&
-                                  profile.badges!.isNotEmpty) ...[
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    if (profile.badges["helper"] == true)
-                                      _badgeIcon(
-                                        "Helper",
-                                        Icons.volunteer_activism,
-                                      ),
-
-                                    if (profile.badges["topTeacher"] == true)
-                                      _badgeIcon("Top Teacher", Icons.star),
-
-                                    if (profile.badges["activeUser"] == true)
-                                      _badgeIcon("Active User", Icons.bolt),
-                                  ],
-                                ),
-                              ],
                               const SizedBox(height: 8),
                               if (hasReviews)
                                 Row(
@@ -121,26 +95,20 @@ class PublicProfileScreen extends StatelessWidget {
                                     const SizedBox(width: 4),
                                     Text(
                                       summary.average.toStringAsFixed(1),
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '(${summary.count} review${summary.count == 1 ? '' : 's'})',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(fontSize: 12),
+                                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
                                     ),
                                   ],
                                 )
-                              else
-                                Text(
-                                  'No reviews yet',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontSize: 12,
+                                else
+                                  Text(
+                                    'No reviews yet',
+                                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
                                   ),
-                                ),
                             ],
                           ),
                         ),
@@ -150,18 +118,11 @@ class PublicProfileScreen extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     if ((profile.bio ?? '').isNotEmpty) ...[
-                      Text(
-                        'About',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('About', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Text(
                         profile.bio!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          height: 1.5,
-                        ),
+                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -175,8 +136,7 @@ class PublicProfileScreen extends StatelessWidget {
                           .map(
                             (s) => Chip(
                               label: Text(s, style: theme.textTheme.bodySmall),
-                              backgroundColor:
-                                  theme.colorScheme.primaryContainer,
+                              backgroundColor: theme.colorScheme.primaryContainer,
                             ),
                           )
                           .toList(),
@@ -193,8 +153,7 @@ class PublicProfileScreen extends StatelessWidget {
                           .map(
                             (s) => Chip(
                               label: Text(s, style: theme.textTheme.bodySmall),
-                              backgroundColor:
-                                  theme.colorScheme.secondaryContainer,
+                              backgroundColor: theme.colorScheme.secondaryContainer,
                             ),
                           )
                           .toList(),
@@ -219,10 +178,7 @@ class PublicProfileScreen extends StatelessWidget {
                           side: BorderSide(color: theme.colorScheme.primary),
                           foregroundColor: theme.colorScheme.primary,
                         ),
-                        child: Text(
-                          'View all reviews',
-                          style: theme.textTheme.bodyMedium,
-                        ),
+                        child: Text('View all reviews', style: theme.textTheme.bodyMedium),
                       ),
                     ),
                   ],
@@ -231,30 +187,6 @@ class PublicProfileScreen extends StatelessWidget {
             },
           );
         },
-      ),
-    );
-  }
-
-  Widget _badgeIcon(String label, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.blueAccent.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

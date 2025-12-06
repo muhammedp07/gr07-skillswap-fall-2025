@@ -60,50 +60,29 @@ class _ProfileViewState extends State<ProfileView> {
       child: Column(
         children: [
           // Profile Image
-          CircleAvatar(
+            CircleAvatar(
             radius: 50,
             backgroundColor: theme.colorScheme.primary,
             backgroundImage: _profile!.profileImageUrl != null
-                ? NetworkImage(_profile!.profileImageUrl!)
-                : null,
+              ? NetworkImage(_profile!.profileImageUrl!)
+              : null,
             child: _profile!.profileImageUrl == null
-                ? Icon(
-                    Icons.person,
-                    size: 60,
-                    color: theme.colorScheme.onPrimary,
-                  )
-                : null,
-          ),
+              ? Icon(Icons.person, size: 60, color: theme.colorScheme.onPrimary)
+              : null,
+            ),
           const SizedBox(height: 16),
 
           // Name
           Text(
             _profile!.name,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
 
           // Major
-          Text(_profile!.major, style: theme.textTheme.bodyMedium),
-
-          // BADGES
-          if (_profile!.badges != null && _profile!.badges!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (_profile!.badges["helper"] == true)
-                  _badgeIcon("Helper", Icons.volunteer_activism),
-
-                if (_profile!.badges["topTeacher"] == true)
-                  _badgeIcon("Top Teacher", Icons.star),
-
-                if (_profile!.badges["activeUser"] == true)
-                  _badgeIcon("Active User", Icons.bolt),
-              ],
-            ),
-          ],
+          Text(
+            _profile!.major,
+            style: theme.textTheme.bodyMedium,
+          ),
 
           // Bio
           if (_profile!.bio != null && _profile!.bio!.isNotEmpty) ...[
@@ -111,10 +90,10 @@ class _ProfileViewState extends State<ProfileView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                _profile!.bio!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
-              ),
+                  _profile!.bio!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
             ),
           ],
 
@@ -155,7 +134,7 @@ class _ProfileViewState extends State<ProfileView> {
             ),
           ),
           const SizedBox(height: 32),
-
+          
           _buildSavedPostsSection(theme),
           const SizedBox(height: 32),
           // Skills I Can Teach Section
@@ -189,9 +168,7 @@ class _ProfileViewState extends State<ProfileView> {
         children: [
           Text(
             "Saved Posts",
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Container(
@@ -280,30 +257,6 @@ class _ProfileViewState extends State<ProfileView> {
                     }).toList(),
                   ),
                 ),
-        ],
-      ),
-    );
-  }
-
-  Widget _badgeIcon(String label, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.blueAccent.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
         ],
       ),
     );
