@@ -60,29 +60,32 @@ class _ProfileViewState extends State<ProfileView> {
       child: Column(
         children: [
           // Profile Image
-            CircleAvatar(
+          CircleAvatar(
             radius: 50,
             backgroundColor: theme.colorScheme.primary,
             backgroundImage: _profile!.profileImageUrl != null
-              ? NetworkImage(_profile!.profileImageUrl!)
-              : null,
+                ? NetworkImage(_profile!.profileImageUrl!)
+                : null,
             child: _profile!.profileImageUrl == null
-              ? Icon(Icons.person, size: 60, color: theme.colorScheme.onPrimary)
-              : null,
-            ),
+                ? Icon(
+                    Icons.person,
+                    size: 60,
+                    color: theme.colorScheme.onPrimary,
+                  )
+                : null,
+          ),
           const SizedBox(height: 16),
 
           // Name
           Text(
             _profile!.name,
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
 
           // Major
-          Text(
-            _profile!.major,
-            style: theme.textTheme.bodyMedium,
-          ),
+          Text(_profile!.major, style: theme.textTheme.bodyMedium),
 
           // Bio
           if (_profile!.bio != null && _profile!.bio!.isNotEmpty) ...[
@@ -90,10 +93,10 @@ class _ProfileViewState extends State<ProfileView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                  _profile!.bio!,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                _profile!.bio!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
             ),
           ],
 
@@ -134,7 +137,7 @@ class _ProfileViewState extends State<ProfileView> {
             ),
           ),
           const SizedBox(height: 32),
-          
+
           _buildSavedPostsSection(theme),
           const SizedBox(height: 32),
           // Skills I Can Teach Section
@@ -168,7 +171,9 @@ class _ProfileViewState extends State<ProfileView> {
         children: [
           Text(
             "Saved Posts",
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 12),
           Container(
